@@ -1,3 +1,17 @@
+// Copyright 2018 SpotHero
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package periodic
 
 import (
@@ -11,37 +25,36 @@ const (
 	red
 )
 
-// Node is the interval tree node type that contains any object and its corresponding period.
-type Node struct {
-	Period   Period
-	Contents interface{}
-}
-
 // node is the private interval tree node type that contains the node's subtree, the maximum end time of the node's
 // subtree, and its color. Instead of storing leaves as nil, leaves are stored as nodes with the leaf property
 // set to make deletions easier.
 type node struct {
-	Node
-	maxEnd time.Time
-	color  color
-	left   *node
-	right  *node
-	parent *node
-	leaf   bool
+	period   Period
+	key      interface{}
+	contents interface{}
+	maxEnd   time.Time
+	color    color
+	left     *node
+	right    *node
+	parent   *node
+	leaf     bool
 }
 
 // newNode creates a new node with data and a color, making sure to construct its left and right children as
 // sentinel nil nodes.
-func newNode(data Node, color color) *node {
+func newNode(period Period, key, contents interface{}, color color) *node {
 	n := &node{
-		Node:  data,
-		color: color,
+		period:   period,
+		key:      key,
+		contents: contents,
+		color:    color,
 	}
 	l, r := &node{leaf: true, parent: n}, &node{leaf: true, parent: n}
 	n.left, n.right = l, r
 	return n
 }
 
+// isLeftChild returns whether a node is the left child of its parent.
 func (n *node) isLeftChild() bool {
 	if n.parent == nil {
 		return false
@@ -49,6 +62,8 @@ func (n *node) isLeftChild() bool {
 	return n.parent.left == n
 }
 
+// sibling returns the node's sibling; i.e. if the node is the parent's left child, the sibling
+// is the parent's right child, and vice versa.
 func (n *node) sibling() *node {
 	if n.parent == nil {
 		return nil

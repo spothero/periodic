@@ -14,11 +14,21 @@
 
 package periodic
 
+import "fmt"
+
 // IntervalTree is a data structure for storing objects that contain time intervals (periods). It is implemented
 // as an augmented red-black binary search tree.
 type IntervalTree struct {
 	root *node
 	size int
+	// nodes is an external mapping of a node's key to a pointer of the node since the interval tree is keyed on
+	// the node's period start time
+	nodes map[interface{}]*node
+}
+
+// NewIntervalTree initializes an interval tree
+func NewIntervalTree() IntervalTree {
+	return IntervalTree{nodes: make(map[interface{}]*node)}
 }
 
 // less decides if p1 comes before or after p2 for the purposes of tree traversal. The start of the period
@@ -28,32 +38,34 @@ func less(p1 Period, p2 Period) bool {
 }
 
 // Insert adds a new node into the tree
-func (it *IntervalTree) Insert(data Node) {
-	if it.root == nil || it.root.leaf {
-		it.root = newNode(data, black)
-		return
-	}
+func (it *IntervalTree) Insert(period Period, key, contents interface{}) {
 	var inserted *node
-	it.insert(data, it.root, &inserted)
+	if it.root == nil || it.root.leaf {
+		inserted = newNode(period, key, contents, black)
+		it.root = inserted
+	} else {
+		it.insert(period, key, contents, it.root, &inserted)
+		it.insertRepair(inserted)
+	}
 	it.size++
-	it.insertRepair(inserted)
+	it.nodes[inserted.key] = inserted
 }
 
 // insert recursively a new red node containing a period and ID into the tree. The inserted node is stored in the
 // the inserted parameter.
-func (it *IntervalTree) insert(data Node, root *node, inserted **node) *node {
+func (it *IntervalTree) insert(period Period, key, contents interface{}, root *node, inserted **node) *node {
 	if root.leaf {
-		*inserted = newNode(data, red)
+		*inserted = newNode(period, key, contents, red)
 		return *inserted
 	}
 	// augment the tree with the maximum end time of its subtree
-	root.maxEnd = MaxTime(data.Period.End, root.Period.End)
+	root.maxEnd = MaxTime(period.End, root.period.End)
 
-	if less(data.Period, root.Period) {
-		root.left = it.insert(data, root.left, inserted)
+	if less(period, root.period) {
+		root.left = it.insert(period, key, contents, root.left, inserted)
 		root.left.parent = root
 	} else {
-		root.right = it.insert(data, root.right, inserted)
+		root.right = it.insert(period, key, contents, root.right, inserted)
 		root.right.parent = root
 	}
 	return root
@@ -156,20 +168,15 @@ func (it *IntervalTree) rotate(n *node, direction rotationDirection) {
 	n.parent = y
 }
 
-// InOrder traverses the tree from the root and visits all the nodes in order
-func (it *IntervalTree) InOrder() []Node {
-	nodes := make([]Node, 0, it.size)
-	it.inOrder(it.root, &nodes)
-	return nodes
-}
-
-func (it *IntervalTree) inOrder(n *node, visited *[]Node) {
-	if n.leaf {
-		return
+// Delete removes the node with the provided key.
+func (it *IntervalTree) Delete(key interface{}) error {
+	node, ok := it.nodes[key]
+	if !ok {
+		return fmt.Errorf("could not delete node with key %v: key does not exist", key)
 	}
-	it.inOrder(n.left, visited)
-	*visited = append(*visited, n.Node)
-	it.inOrder(n.right, visited)
+	it.delete(node)
+	delete(it.nodes, key)
+	return nil
 }
 
 func (it *IntervalTree) delete(n *node) {
@@ -202,7 +209,7 @@ func (it *IntervalTree) delete(n *node) {
 	} else {
 		it.root = z
 	}
-	n.Node = y.Node
+	n.period, n.key, n.contents = y.period, y.key, y.contents
 	if y.color == black {
 		it.deleteRepair(z)
 	}
