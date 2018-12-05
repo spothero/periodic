@@ -42,6 +42,7 @@ func (it *IntervalTree) Insert(period Period, key, contents interface{}) {
 	var inserted *node
 	if it.root == nil || it.root.leaf {
 		inserted = newNode(period, key, contents, black)
+		inserted.maxEnd = period.End
 		it.root = inserted
 	} else {
 		it.insert(period, key, contents, it.root, &inserted)
@@ -59,7 +60,7 @@ func (it *IntervalTree) insert(period Period, key, contents interface{}, root *n
 		return *inserted
 	}
 	// augment the tree with the maximum end time of its subtree
-	root.maxEnd = MaxTime(period.End, root.period.End)
+	root.maxEnd = MaxTime(root.maxEnd, period.End)
 
 	if less(period, root.period) {
 		root.left = it.insert(period, key, contents, root.left, inserted)
@@ -72,7 +73,6 @@ func (it *IntervalTree) insert(period Period, key, contents interface{}, root *n
 }
 
 // insertRepair rebalances the tree to maintain the red-black property after an insertion
-// TODO: maintain the augmented maxEnd property when repairing -- should be able to accomplish in O(1)
 func (it *IntervalTree) insertRepair(n *node) {
 	if n == it.root {
 		// n is the actual root of the tree, by definition it is always black
@@ -166,6 +166,10 @@ func (it *IntervalTree) rotate(n *node, direction rotationDirection) {
 		y.left = n
 	}
 	n.parent = y
+	n.maxEnd = n.maxEndOfSubtree()
+	if !y.leaf {
+		y.maxEnd = y.maxEndOfSubtree()
+	}
 }
 
 // Delete removes the node with the provided key.
@@ -210,13 +214,18 @@ func (it *IntervalTree) delete(n *node) {
 		it.root = z
 	}
 	n.period, n.key, n.contents = y.period, y.key, y.contents
+
+	if z.parent != nil {
+		z.parent.maxEnd = z.parent.maxEndOfSubtree()
+	}
+	n.maxEnd = n.maxEndOfSubtree()
+
 	if y.color == black {
 		it.deleteRepair(z)
 	}
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
-// TODO: maintain the augmented maxEnd property when repairing -- should be able to accomplish in O(1)
 func (it *IntervalTree) deleteRepair(n *node) {
 	if n == it.root || n.color == red {
 		n.color = black

@@ -17,6 +17,7 @@ package periodic
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestNode_isLeftChild(t *testing.T) {
@@ -112,6 +113,57 @@ func TestNode_nodeColor(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.color, test.setup().nodeColor())
+		})
+	}
+}
+
+func TestNode_maxEndOfSubtree(t *testing.T) {
+	/*
+		    A
+		   / \
+		  B   D
+		 /     \
+		C       E
+	*/
+	a := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
+	b := newNode(Period{time.Unix(15, 0), time.Unix(25, 0)}, nil, nil, black)
+	c := newNode(Period{time.Unix(5, 0), time.Unix(45, 0)}, nil, nil, black)
+	d := newNode(Period{time.Unix(22, 0), time.Unix(101, 0)}, nil, nil, black)
+	e := newNode(Period{time.Unix(25, 0), time.Unix(100, 0)}, nil, nil, black)
+	a.left, a.right = b, d
+	b.left = c
+	d.right = e
+	a.maxEnd = d.period.End
+	b.maxEnd = c.period.End
+	c.maxEnd = c.period.End
+	d.maxEnd = d.period.End
+	e.maxEnd = e.period.End
+	tests := []struct {
+		name     string
+		node     *node
+		expected time.Time
+	}{
+		{
+			"node with only child leafs returns its own max end time",
+			c,
+			c.period.End,
+		}, {
+			"node with only left child returns max of its period end and its left child's max end",
+			b,
+			c.maxEnd,
+		}, {
+			"node with only right child returns max of its period end and its right child's max end",
+			d,
+			d.maxEnd,
+		}, {
+			"node with left and right children returns the max of its period end and its children's max ends",
+			a,
+			d.maxEnd,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, test.node.maxEndOfSubtree())
 		})
 	}
 }

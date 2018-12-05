@@ -1,6 +1,6 @@
 default_target: all
 
-all: bootstrap vendor test
+all: bootstrap vendor lint test
 
 # Bootstrapping for base golang package deps
 BOOTSTRAP=\

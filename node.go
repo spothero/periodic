@@ -48,6 +48,7 @@ func newNode(period Period, key, contents interface{}, color color) *node {
 		key:      key,
 		contents: contents,
 		color:    color,
+		maxEnd:   period.End,
 	}
 	l, r := &node{leaf: true, parent: n}, &node{leaf: true, parent: n}
 	n.left, n.right = l, r
@@ -103,4 +104,17 @@ func (n *node) successor() *node {
 		parent = parent.parent
 	}
 	return parent
+}
+
+func (n *node) maxEndOfSubtree() time.Time {
+	if n.left.leaf && n.right.leaf {
+		return n.period.End
+	}
+	if n.left.leaf && !n.right.leaf {
+		return MaxTime(n.period.End, n.right.maxEnd)
+	}
+	if !n.left.leaf && n.right.leaf {
+		return MaxTime(n.period.End, n.left.maxEnd)
+	}
+	return MaxTime(n.period.End, MaxTime(n.left.maxEnd, n.right.maxEnd))
 }
