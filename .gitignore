@@ -12,3 +12,7 @@
 *.out
 vendor/
 coverage.txt
+
+# Various IDEs
+.vscode
+.idea
