@@ -26,15 +26,15 @@ import (
 func TestIntervalTree_Insert(t *testing.T) {
 	tests := []struct {
 		name          string
-		setupTree     func() IntervalTree
+		setupTree     func() *IntervalTree
 		insertPeriods []Period // start time of the periods to insert (tree uses start time as node key)
-		validateTree  func(t *testing.T, it IntervalTree)
+		validateTree  func(t *testing.T, it *IntervalTree)
 	}{
 		{
 			"inserting a single node creates a black root",
-			func() IntervalTree { return NewIntervalTree() },
+			func() *IntervalTree { return NewIntervalTree() },
 			[]Period{NewPeriod(time.Unix(1, 0), time.Unix(5, 0))},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, black, it.root.color)
 				assert.Contains(t, it.nodes, 0)
 				assert.Equal(t, time.Unix(5, 0), it.root.maxEnd)
@@ -42,13 +42,13 @@ func TestIntervalTree_Insert(t *testing.T) {
 		},
 		{
 			"inserting a node into a tree with a sentinel root replaces the sentinel with a new root",
-			func() IntervalTree {
+			func() *IntervalTree {
 				it := NewIntervalTree()
 				it.root = &node{leaf: true}
 				return it
 			},
 			[]Period{NewPeriod(time.Unix(1, 0), time.Unix(5, 0))},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, black, it.root.color)
 				assert.False(t, it.root.leaf)
 				assert.Equal(t, time.Unix(1, 0), it.root.period.Start)
@@ -64,13 +64,13 @@ func TestIntervalTree_Insert(t *testing.T) {
 			1   3
 			*/
 			"inserting 3 nodes creates red children",
-			func() IntervalTree { return NewIntervalTree() },
+			func() *IntervalTree { return NewIntervalTree() },
 			[]Period{
 				NewPeriod(time.Unix(2, 0), time.Unix(5, 0)),
 				NewPeriod(time.Unix(1, 0), time.Unix(10, 0)),
 				NewPeriod(time.Unix(3, 0), time.Unix(4, 0)),
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				require.NotNil(t, it.root.left)
 				require.NotNil(t, it.root.right)
 				assert.Equal(t, time.Unix(2, 0), it.root.period.Start)
@@ -97,13 +97,13 @@ func TestIntervalTree_Insert(t *testing.T) {
 			    3
 			*/
 			"inserting 3 nodes creates red children after a rotation",
-			func() IntervalTree { return NewIntervalTree() },
+			func() *IntervalTree { return NewIntervalTree() },
 			[]Period{
 				NewPeriod(time.Unix(1, 0), time.Unix(5, 0)),
 				NewPeriod(time.Unix(2, 0), time.Unix(4, 0)),
 				NewPeriod(time.Unix(3, 0), time.Unix(10, 0)),
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				require.NotNil(t, it.root.left)
 				require.NotNil(t, it.root.right)
 				assert.Equal(t, time.Unix(2, 0), it.root.period.Start)
@@ -131,7 +131,7 @@ func TestIntervalTree_Insert(t *testing.T) {
 			      35
 			*/
 			"inserting a new node beneath red nodes changes the parents to black",
-			func() IntervalTree {
+			func() *IntervalTree {
 				twenty := newNode(NewPeriod(time.Unix(20, 0), time.Unix(25, 0)), nil, nil, black)
 				ten := newNode(NewPeriod(time.Unix(10, 0), time.Unix(22, 0)), nil, nil, red)
 				thirty := newNode(NewPeriod(time.Unix(30, 0), time.Unix(100, 0)), nil, nil, red)
@@ -143,7 +143,7 @@ func TestIntervalTree_Insert(t *testing.T) {
 				return it
 			},
 			[]Period{NewPeriod(time.Unix(35, 0), time.Unix(50, 0))},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, time.Unix(20, 0), it.root.period.Start)
 				assert.Equal(t, time.Unix(10, 0), it.root.left.period.Start)
 				assert.Equal(t, time.Unix(30, 0), it.root.right.period.Start)
@@ -167,7 +167,7 @@ func TestIntervalTree_Insert(t *testing.T) {
 			25
 			*/
 			"inserting a new left inside performs multiple rotations to balance the tree",
-			func() IntervalTree {
+			func() *IntervalTree {
 				twenty := newNode(NewPeriod(time.Unix(20, 0), time.Unix(50, 0)), nil, nil, black)
 				thirty := newNode(NewPeriod(time.Unix(30, 0), time.Unix(75, 0)), nil, nil, red)
 				twenty.right, twenty.maxEnd = thirty, thirty.period.End
@@ -177,7 +177,7 @@ func TestIntervalTree_Insert(t *testing.T) {
 				return it
 			},
 			[]Period{NewPeriod(time.Unix(25, 0), time.Unix(100, 0))},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, time.Unix(25, 0), it.root.period.Start)
 				assert.Equal(t, time.Unix(20, 0), it.root.left.period.Start)
 				assert.Equal(t, time.Unix(30, 0), it.root.right.period.Start)
@@ -198,7 +198,7 @@ func TestIntervalTree_Insert(t *testing.T) {
 			 20
 			*/
 			"inserting a new right inside performs multiple rotations to balance the tree",
-			func() IntervalTree {
+			func() *IntervalTree {
 				twentyFive := newNode(NewPeriod(time.Unix(25, 0), time.Unix(45, 0)), nil, nil, black)
 				fifteen := newNode(NewPeriod(time.Unix(15, 0), time.Unix(20, 0)), nil, nil, red)
 				twentyFive.left, twentyFive.maxEnd = fifteen, twentyFive.period.End
@@ -208,7 +208,7 @@ func TestIntervalTree_Insert(t *testing.T) {
 				return it
 			},
 			[]Period{NewPeriod(time.Unix(20, 0), time.Unix(40, 0))},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, time.Unix(20, 0), it.root.period.Start)
 				assert.Equal(t, time.Unix(15, 0), it.root.left.period.Start)
 				assert.Equal(t, time.Unix(25, 0), it.root.right.period.Start)
@@ -242,27 +242,27 @@ func TestIntervalTree_rotate(t *testing.T) {
 			n.left, n.right, n.parent = &node{leaf: true}, &node{leaf: true}, nil
 		}
 	}
-	setupLeftTree := func() IntervalTree {
+	setupLeftTree := func() *IntervalTree {
 		cleanupTree()
 		nodeD.left, nodeD.period.End, nodeD.maxEnd = nodeC, time.Unix(1, 0), time.Unix(10, 0)
 		nodeC.left, nodeC.right, nodeC.parent, nodeC.period.End, nodeC.maxEnd =
 			nodeA, nodeB, nodeD, time.Unix(2, 0), time.Unix(10, 0)
 		nodeA.parent, nodeA.period.End, nodeA.maxEnd = nodeC, time.Unix(10, 0), time.Unix(10, 0)
 		nodeB.parent, nodeB.period.End, nodeB.maxEnd = nodeC, time.Unix(5, 0), time.Unix(5, 0)
-		return IntervalTree{root: nodeD}
+		return &IntervalTree{root: nodeD}
 	}
-	setupRightTree := func() IntervalTree {
+	setupRightTree := func() *IntervalTree {
 		cleanupTree()
 		nodeD.right, nodeD.period.End, nodeD.maxEnd = nodeC, time.Unix(1, 0), time.Unix(10, 0)
 		nodeC.left, nodeC.right, nodeC.parent, nodeC.period.End, nodeC.maxEnd =
 			nodeA, nodeB, nodeD, time.Unix(2, 0), time.Unix(10, 0)
 		nodeA.parent, nodeA.period.End, nodeA.maxEnd = nodeC, time.Unix(10, 0), time.Unix(10, 0)
 		nodeB.parent, nodeB.period.End, nodeB.maxEnd = nodeC, time.Unix(5, 0), time.Unix(5, 0)
-		return IntervalTree{root: nodeD}
+		return &IntervalTree{root: nodeD}
 	}
 	tests := []struct {
 		name         string
-		setupTree    func() IntervalTree
+		setupTree    func() *IntervalTree
 		direction    rotationDirection
 		nodeToRotate *node
 		validateTree func(t *testing.T)
@@ -490,16 +490,16 @@ func TestIntervalTree_Delete(t *testing.T) {
 func TestIntervalTree_delete(t *testing.T) {
 	tests := []struct {
 		name      string
-		setupTree func() (IntervalTree, *node)
-		validate  func(t *testing.T, it IntervalTree)
+		setupTree func() (*IntervalTree, *node)
+		validate  func(t *testing.T, it *IntervalTree)
 	}{
 		{
 			"deleting the a tree with only root leaves a leaf as the root",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				root := newNode(Period{}, nil, nil, black)
-				return IntervalTree{root: root}, root
+				return &IntervalTree{root: root}, root
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.True(t, it.root.leaf)
 				assert.Nil(t, it.root.left)
 				assert.Nil(t, it.root.right)
@@ -514,7 +514,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			L   R       L
 			*/
 			"deleting a black right child with no children with a black sibling with red children rebalances the tree",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{End: time.Unix(40, 0)}, nil, "p", black)
 				s := newNode(Period{End: time.Unix(50, 0)}, nil, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, nil, "n", black)
@@ -524,9 +524,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				s.left, s.right, s.parent, s.maxEnd = l, r, p, r.period.End
 				l.parent, r.parent = s, s
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "r", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "s", it.root.left.contents)
@@ -550,7 +550,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			     L   R            R
 			*/
 			"deleting a black left child with no children with a black sibling with red children rebalances the tree",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{End: time.Unix(40, 0)}, nil, "p", black)
 				s := newNode(Period{End: time.Unix(50, 0)}, nil, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, nil, "n", black)
@@ -560,9 +560,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				s.left, s.right, s.parent, s.maxEnd = l, r, p, r.period.End
 				l.parent, r.parent = s, s
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "l", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "p", it.root.left.contents)
@@ -585,7 +585,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			L   R           R
 			*/
 			"deleting a black left node with a red sibling rebalances the tree",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", red)
 				n := newNode(Period{}, nil, "n", black)
@@ -596,9 +596,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				l.parent = s
 				r.parent = s
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "s", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "l", it.root.left.contents)
@@ -618,7 +618,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			  L   R       L
 			*/
 			"deleting a black left node with a red sibling rebalances the tree",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", red)
 				n := newNode(Period{}, nil, "n", black)
@@ -629,9 +629,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				l.parent = s
 				r.parent = s
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "s", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "p", it.root.left.contents)
@@ -651,7 +651,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			L
 			*/
 			"delete left node with left child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{End: time.Unix(15, 0)}, nil, "p", black)
 				s := newNode(Period{End: time.Unix(10, 0)}, nil, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, nil, "n", black)
@@ -660,9 +660,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				n.left, n.parent = l, p
 				s.parent = p
 				l.parent = n
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "l", it.root.left.contents)
@@ -682,7 +682,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			      R
 			*/
 			"delete right node right left child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{End: time.Unix(15, 0)}, nil, "p", black)
 				s := newNode(Period{End: time.Unix(10, 0)}, nil, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, nil, "n", black)
@@ -691,9 +691,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				n.right, n.parent = r, p
 				s.parent = p
 				r.parent = n
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "s", it.root.left.contents)
@@ -713,7 +713,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			  R
 			*/
 			"delete left node with right child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{End: time.Unix(15, 0)}, nil, "p", black)
 				s := newNode(Period{End: time.Unix(10, 0)}, nil, "s", black)
 				n := newNode(Period{End: time.Unix(25, 0)}, nil, "n", black)
@@ -722,9 +722,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				n.right, n.parent = r, p
 				s.parent = p
 				r.parent = n
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "r", it.root.left.contents)
@@ -744,7 +744,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			  L
 			*/
 			"delete right node with left child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{End: time.Unix(15, 0)}, nil, "p", black)
 				s := newNode(Period{End: time.Unix(10, 0)}, nil, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, nil, "n", black)
@@ -753,9 +753,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				n.left, n.parent = l, p
 				s.parent = p
 				l.parent = n
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "s", it.root.left.contents)
@@ -768,14 +768,14 @@ func TestIntervalTree_delete(t *testing.T) {
 			},
 		}, {
 			"deleting black node with leaf sibling and red parent makes parent black",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", red)
 				n := newNode(Period{}, nil, "n", black)
 				p.left = n
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.True(t, it.root.left.leaf)
 				assert.Equal(t, black, it.root.color)
@@ -790,7 +790,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			  L   R    L   R
 			*/
 			"deleting a black node with a red sibling with 2 black child nodes rebalances the tree",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", black)
 				n := newNode(Period{}, nil, "n", black)
@@ -801,9 +801,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				l.parent = s
 				r.parent = s
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "s", it.root.right.contents)
@@ -823,7 +823,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			  RL
 			*/
 			"delete an internal node with a black successor",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				n := newNode(Period{End: time.Unix(20, 0)}, nil, "n", black)
 				l := newNode(Period{End: time.Unix(10, 0)}, nil, "l", black)
 				r := newNode(Period{End: time.Unix(30, 0)}, nil, "r", black)
@@ -832,9 +832,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				r.left, r.parent = rl, n
 				l.parent = n
 				rl.parent = r
-				return IntervalTree{root: n}, n
+				return &IntervalTree{root: n}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "rl", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "l", it.root.left.contents)
@@ -854,7 +854,7 @@ func TestIntervalTree_delete(t *testing.T) {
 			  RL
 			*/
 			"delete an internal node with a black successor with max end less than the internal node",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				n := newNode(Period{End: time.Unix(50, 0)}, nil, "n", black)
 				l := newNode(Period{End: time.Unix(10, 0)}, nil, "l", black)
 				r := newNode(Period{End: time.Unix(30, 0)}, nil, "r", black)
@@ -863,9 +863,9 @@ func TestIntervalTree_delete(t *testing.T) {
 				r.left, r.parent, r.maxEnd = rl, n, rl.period.End
 				l.parent = n
 				rl.parent = r
-				return IntervalTree{root: n}, n
+				return &IntervalTree{root: n}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "rl", it.root.contents)
 				assert.Equal(t, black, it.root.color)
 				assert.Equal(t, "l", it.root.left.contents)
@@ -878,14 +878,14 @@ func TestIntervalTree_delete(t *testing.T) {
 			},
 		}, {
 			"deleting the only child of the root updates max end correctly",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				root := newNode(Period{End: time.Unix(20, 0)}, nil, "root", black)
 				r := newNode(Period{End: time.Unix(30, 0)}, nil, "r", black)
 				root.right, root.maxEnd = r, r.period.End
 				r.parent = root
-				return IntervalTree{root: root}, r
+				return &IntervalTree{root: root}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "root", it.root.contents)
 				assert.True(t, it.root.left.leaf)
 				assert.True(t, it.root.right.leaf)
@@ -905,8 +905,8 @@ func TestIntervalTree_delete(t *testing.T) {
 func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() (IntervalTree, *node)
-		validate func(t *testing.T, it IntervalTree)
+		setup    func() (*IntervalTree, *node)
+		validate func(t *testing.T, it *IntervalTree)
 	}{
 		{
 			/* N is deleted; S is red to start, everything else is black
@@ -917,7 +917,7 @@ func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 			L   R                  R   N (leaf)
 			*/
 			"deleted right child with red sibling rotates right around the parent",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", red)
 				l := newNode(Period{}, nil, "l", black)
@@ -932,9 +932,9 @@ func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 				l.parent = s
 				r.parent = s
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "s", it.root.contents)
 				assert.Equal(t, "l", it.root.left.contents)
 				assert.Equal(t, "p", it.root.right.contents)
@@ -950,7 +950,7 @@ func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 			         L   R   (leaf) N   L
 			*/
 			"deleted left child with red sibling rotates left around the parent",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", red)
 				l := newNode(Period{}, nil, "l", black)
@@ -965,9 +965,9 @@ func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 				l.parent = s
 				r.parent = s
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "s", it.root.contents)
 				assert.Equal(t, "p", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
@@ -976,7 +976,7 @@ func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 			},
 		}, {
 			"deleted child with black sibling does nothing",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", black)
 				n := &node{leaf: true}
@@ -984,23 +984,23 @@ func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 				p.right = n
 				n.parent = p
 				s.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "s", it.root.left.contents)
 				assert.True(t, it.root.right.leaf)
 			},
 		}, {
 			"deleted child with no sibling does nothing",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				n := &node{leaf: true}
 				p.right = n
 				n.parent = p
-				return IntervalTree{root: p}, n
+				return &IntervalTree{root: p}, n
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.True(t, it.root.left.leaf)
 				assert.True(t, it.root.right.leaf)
@@ -1019,13 +1019,13 @@ func TestIntervalTree_deleteRepairCase1(t *testing.T) {
 func TestIntervalTree_deleteRepairCase2(t *testing.T) {
 	tests := []struct {
 		name            string
-		setup           func() (IntervalTree, *node, *node)
+		setup           func() (*IntervalTree, *node, *node)
 		expectedOutcome bool
 		expectRecolor   bool
 	}{
 		{
 			"deleted node with black sibling with 2 black child nodes recolors the sibling and returns true",
-			func() (IntervalTree, *node, *node) {
+			func() (*IntervalTree, *node, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", black)
 				sl := newNode(Period{}, nil, "sl", black)
@@ -1035,13 +1035,13 @@ func TestIntervalTree_deleteRepairCase2(t *testing.T) {
 				s.left, s.right, s.parent = sl, sr, p
 				sl.parent, sr.parent = s, s
 				n.parent = p
-				return IntervalTree{root: p}, n, s
+				return &IntervalTree{root: p}, n, s
 			},
 			true,
 			true,
 		}, {
 			"deleted node with black sibling and 1 child does nothing",
-			func() (IntervalTree, *node, *node) {
+			func() (*IntervalTree, *node, *node) {
 				p := newNode(Period{}, nil, nil, black)
 				s := newNode(Period{}, nil, nil, black)
 				sr := newNode(Period{}, nil, nil, black)
@@ -1050,26 +1050,26 @@ func TestIntervalTree_deleteRepairCase2(t *testing.T) {
 				s.right, s.parent = sr, p
 				sr.parent = s
 				n.parent = p
-				return IntervalTree{root: p}, n, s
+				return &IntervalTree{root: p}, n, s
 			},
 			false,
 			false,
 		}, {
 			"deleted node with leaf sibling returns true but does not recolor the leaf",
-			func() (IntervalTree, *node, *node) {
+			func() (*IntervalTree, *node, *node) {
 				p := newNode(Period{}, nil, nil, black)
 				s := &node{leaf: true}
 				n := &node{leaf: true}
 				p.left, p.right = s, n
 				s.parent = p
 				n.parent = p
-				return IntervalTree{root: p}, n, s
+				return &IntervalTree{root: p}, n, s
 			},
 			true,
 			false,
 		}, {
 			"deleted node with red sibling does nothing",
-			func() (IntervalTree, *node, *node) {
+			func() (*IntervalTree, *node, *node) {
 				p := newNode(Period{}, nil, nil, black)
 				s := newNode(Period{}, nil, nil, red)
 				sl := newNode(Period{}, nil, nil, black)
@@ -1079,7 +1079,7 @@ func TestIntervalTree_deleteRepairCase2(t *testing.T) {
 				s.left, s.right, s.parent = sl, sr, p
 				sl.parent, sr.parent = s, s
 				n.parent = p
-				return IntervalTree{root: p}, n, s
+				return &IntervalTree{root: p}, n, s
 			},
 			false,
 			false,
@@ -1103,41 +1103,41 @@ func TestIntervalTree_deleteRepairCase2(t *testing.T) {
 func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() (IntervalTree, *node)
-		validate func(t *testing.T, it IntervalTree)
+		setup    func() (*IntervalTree, *node)
+		validate func(t *testing.T, it *IntervalTree)
 	}{
 		{
 			"no action when sibling is a leaf",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				r.parent = p
 				p.right = r
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "r", it.root.right.contents)
 				assert.True(t, it.root.left.leaf)
 			},
 		}, {
 			"no action when sibling is red",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", red)
 				l := newNode(Period{}, nil, "l", red)
 				l.parent, r.parent = p, p
 				p.left, p.right = l, r
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "l", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
 			},
 		}, {
 			"no action when node is right child and sibling has no right child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1146,9 +1146,9 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 				p.left, p.right = l, r
 				l.left = ll
 				ll.parent = ll
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "l", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
@@ -1156,7 +1156,7 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 			},
 		}, {
 			"no action when node is left child and sibling has no left child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1165,9 +1165,9 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 				p.left, p.right = l, r
 				l.left = ll
 				ll.parent = ll
-				return IntervalTree{root: p}, l
+				return &IntervalTree{root: p}, l
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "l", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
@@ -1175,7 +1175,7 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 			},
 		}, {
 			"left rotate around sibling and recolor when node is right child and sibling is black with red right child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1184,9 +1184,9 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 				p.left, p.right = l, r
 				l.right = lr
 				lr.parent = l
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "lr", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
@@ -1196,7 +1196,7 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 			},
 		}, {
 			"right rotate around sibling and recolor when node is left child and sibling is black with red left child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1205,9 +1205,9 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 				p.left, p.right = l, r
 				r.left = rl
 				rl.parent = r
-				return IntervalTree{root: p}, l
+				return &IntervalTree{root: p}, l
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "rl", it.root.right.contents)
 				assert.Equal(t, "l", it.root.left.contents)
@@ -1229,41 +1229,41 @@ func TestIntervalTree_deleteRepairCase3(t *testing.T) {
 func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() (IntervalTree, *node)
-		validate func(t *testing.T, it IntervalTree)
+		setup    func() (*IntervalTree, *node)
+		validate func(t *testing.T, it *IntervalTree)
 	}{
 		{
 			"no action when sibling is a leaf",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				r.parent = p
 				p.right = r
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "r", it.root.right.contents)
 				assert.True(t, it.root.left.leaf)
 			},
 		}, {
 			"no action when sibling is red",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", red)
 				l := newNode(Period{}, nil, "l", red)
 				l.parent, r.parent = p, p
 				p.left, p.right = l, r
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "l", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
 			},
 		}, {
 			"no action when right child and sibling has no left child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1272,9 +1272,9 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 				p.left, p.right = l, r
 				l.right = lr
 				lr.parent = l
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "l", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
@@ -1282,7 +1282,7 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 			},
 		}, {
 			"no action when left child and sibling has no right child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1291,9 +1291,9 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 				p.left, p.right = l, r
 				r.left = rl
 				rl.parent = r
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "p", it.root.contents)
 				assert.Equal(t, "l", it.root.left.contents)
 				assert.Equal(t, "r", it.root.right.contents)
@@ -1301,7 +1301,7 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 			},
 		}, {
 			"right rotate around parent and recolor when right child and sibling is black with red left child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", red)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1310,9 +1310,9 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 				p.left, p.right = l, r
 				l.left = ll
 				ll.parent = l
-				return IntervalTree{root: p}, r
+				return &IntervalTree{root: p}, r
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "l", it.root.contents)
 				assert.Equal(t, "ll", it.root.left.contents)
 				assert.Equal(t, "p", it.root.right.contents)
@@ -1323,7 +1323,7 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 			},
 		}, {
 			"left rotate around parent and recolor when left child and sibling is black with red right child",
-			func() (IntervalTree, *node) {
+			func() (*IntervalTree, *node) {
 				p := newNode(Period{}, nil, "p", red)
 				r := newNode(Period{}, nil, "r", black)
 				l := newNode(Period{}, nil, "l", black)
@@ -1332,9 +1332,9 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 				p.left, p.right = l, r
 				r.right = rr
 				rr.parent = r
-				return IntervalTree{root: p}, l
+				return &IntervalTree{root: p}, l
 			},
-			func(t *testing.T, it IntervalTree) {
+			func(t *testing.T, it *IntervalTree) {
 				assert.Equal(t, "r", it.root.contents)
 				assert.Equal(t, "p", it.root.left.contents)
 				assert.Equal(t, "rr", it.root.right.contents)
@@ -1350,6 +1350,125 @@ func TestIntervalTree_deleteRepairCase4(t *testing.T) {
 			it, n := test.setup()
 			it.deleteRepairCase4(n)
 			test.validate(t, it)
+		})
+	}
+}
+
+func TestIntervalTree_ContainsTime(t *testing.T) {
+	periods := []Period{
+		NewPeriod(time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
+		NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
+		NewPeriod(time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC)),
+		NewPeriod(time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 0, 0, 0, 0, time.UTC)),
+	}
+	tests := []struct {
+		name            string
+		periods         []Period
+		query           time.Time
+		expectedOutcome bool
+	}{
+		{
+			"period that contains time in left subtree returns true",
+			periods,
+			time.Date(2018, 12, 6, 15, 0, 0, 0, time.UTC),
+			true,
+		}, {
+			"period that contains time in right subtree returns true",
+			periods,
+			time.Date(2018, 12, 9, 15, 0, 0, 0, time.UTC),
+			true,
+		}, {
+			"time not contained in any period in the tree returns false",
+			periods,
+			time.Date(2018, 12, 12, 0, 0, 0, 0, time.UTC),
+			false,
+		}, {
+			"root that contains time returns true",
+			[]Period{
+				NewPeriod(time.Date(2018, 12, 6, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
+			},
+			time.Date(2018, 12, 6, 15, 0, 0, 0, time.UTC),
+			true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			it := NewIntervalTree()
+			for _, p := range test.periods {
+				it.Insert(p, nil, nil)
+			}
+			assert.Equal(t, test.expectedOutcome, it.ContainsTime(test.query))
+		})
+	}
+}
+
+func TestIntervalTree_Intersecting(t *testing.T) {
+	chiTz, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	nodes := []struct {
+		contents string
+		period   Period
+	}{
+		{"a", NewPeriod(time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC))},
+		{"b", NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC))},
+		{"c", NewPeriod(time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC))},
+		{"d", NewPeriod(time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 0, 0, 0, 0, time.UTC))},
+		{"e", NewPeriod(time.Date(2018, 12, 10, 0, 0, 0, 0, chiTz), time.Date(2018, 12, 10, 12, 0, 0, 0, chiTz))},
+	}
+	it := NewIntervalTree()
+	for _, n := range nodes {
+		it.Insert(n.period, nil, n.contents)
+	}
+	tests := []struct {
+		name             string
+		query            Period
+		expectedContents []string
+	}{
+		{
+			"2018-12-05 12:00 - 2018-12-06 12:00 intersects period a",
+			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 6, 12, 0, 0, 0, time.UTC)),
+			[]string{"a"},
+		}, {
+			"2018-12-05 12:00 - 2018-12-07 12:00 intersects period a and b",
+			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC)),
+			[]string{"a", "b"},
+		}, {
+			"2018-12-05 12:00 - 2018-12-12 12:00 intersects periods a, b, c, d, and e",
+			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 12, 12, 0, 0, 0, time.UTC)),
+			[]string{"a", "b", "c", "d", "e"},
+		}, {
+			"2018-12-05 12:00 - 2018-12-07 00:00 intersects period a",
+			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
+			[]string{"a"},
+		}, {
+			"2018-12-05 12:00 - 2018-12-05 14:00 does not intersect",
+			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 5, 14, 0, 0, 0, time.UTC)),
+			[]string{},
+		}, {
+			"2018-12-20 12:00 - 2018-12-20 14:00 does not intersect",
+			NewPeriod(time.Date(2018, 12, 20, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 20, 14, 0, 0, 0, time.UTC)),
+			[]string{},
+		}, {
+			"2018-12-07 12:00 - 2018-12-07 14:00 intersects period b",
+			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 14, 0, 0, 0, time.UTC)),
+			[]string{"b"},
+		}, {
+			"2018-12-10 02:00 - 10:00 CST intersects period e",
+			NewPeriod(time.Date(2018, 12, 10, 2, 0, 0, 0, chiTz), time.Date(2018, 12, 10, 10, 0, 0, 0, chiTz)),
+			[]string{"e"},
+		}, {
+			"2018-12-09 20:00 - 2018-12-10 10:00 UTC intersects period d and e",
+			NewPeriod(time.Date(2018, 12, 9, 20, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 10, 0, 0, 0, time.UTC)),
+			[]string{"d", "e"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			intersecting := it.Intersecting(test.query)
+			assert.Len(t, intersecting, len(test.expectedContents))
+			for _, c := range test.expectedContents {
+				assert.Contains(t, intersecting, c)
+			}
 		})
 	}
 }

@@ -14,21 +14,26 @@
 
 package periodic
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+	"time"
+)
 
 // IntervalTree is a data structure for storing objects that contain time intervals (periods). It is implemented
 // as an augmented red-black binary search tree.
 type IntervalTree struct {
-	root *node
-	size int
+	root  *node
+	size  int
+	mutex sync.RWMutex
 	// nodes is an external mapping of a node's key to a pointer of the node since the interval tree is keyed on
 	// the node's period start time
 	nodes map[interface{}]*node
 }
 
 // NewIntervalTree initializes an interval tree
-func NewIntervalTree() IntervalTree {
-	return IntervalTree{nodes: make(map[interface{}]*node)}
+func NewIntervalTree() *IntervalTree {
+	return &IntervalTree{nodes: make(map[interface{}]*node)}
 }
 
 // less decides if p1 comes before or after p2 for the purposes of tree traversal. The start of the period
@@ -39,6 +44,8 @@ func less(p1 Period, p2 Period) bool {
 
 // Insert adds a new node into the tree
 func (it *IntervalTree) Insert(period Period, key, contents interface{}) {
+	it.mutex.Lock()
+	defer it.mutex.Unlock()
 	var inserted *node
 	if it.root == nil || it.root.leaf {
 		inserted = newNode(period, key, contents, black)
@@ -174,6 +181,8 @@ func (it *IntervalTree) rotate(n *node, direction rotationDirection) {
 
 // Delete removes the node with the provided key.
 func (it *IntervalTree) Delete(key interface{}) error {
+	it.mutex.Lock()
+	defer it.mutex.Unlock()
 	node, ok := it.nodes[key]
 	if !ok {
 		return fmt.Errorf("could not delete node with key %v: key does not exist", key)
@@ -223,6 +232,8 @@ func (it *IntervalTree) delete(n *node) {
 	if y.color == black {
 		it.deleteRepair(z)
 	}
+
+	it.size--
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
@@ -313,5 +324,53 @@ func (it *IntervalTree) deleteRepairCase4(n *node) {
 			n.parent.color = black
 			it.rotate(n.parent, left)
 		}
+	}
+}
+
+// ContainsTime returns whether there is any stored period that contains the supplied time.
+func (it *IntervalTree) ContainsTime(time time.Time) bool {
+	it.mutex.RLock()
+	defer it.mutex.RUnlock()
+	return it.containsTime(it.root, time)
+}
+
+// containsTime is the internal function that recursively searches the tree for the supplied time.
+func (it *IntervalTree) containsTime(root *node, time time.Time) bool {
+	if root.leaf {
+		return false
+	}
+	if root.period.ContainsTime(time) {
+		return true
+	}
+	if !root.left.leaf && root.left.maxEnd.After(time) {
+		return it.containsTime(root.left, time)
+	}
+	return it.containsTime(root.right, time)
+}
+
+// Intersecting returns the contents of all intersecting objects. Period intersection is inclusive on the start time
+// but exclusive on the end time.
+func (it *IntervalTree) Intersecting(period Period) []interface{} {
+	it.mutex.RLock()
+	defer it.mutex.RUnlock()
+	results := make([]interface{}, 0, it.size)
+	it.intersecting(period, it.root, &results)
+	return results
+}
+
+// intersecting is the internal function that recursively searches the tree and adds all node contents to results
+func (it *IntervalTree) intersecting(period Period, root *node, results *[]interface{}) {
+	if root.leaf {
+		return
+	}
+	if root.period.Intersects(period) {
+		*results = append(*results, root.contents)
+	}
+	// TODO: the left and right subtrees can be searched concurrently
+	if !root.left.leaf && root.left.maxEnd.After(period.Start) {
+		it.intersecting(period, root.left, results)
+	}
+	if !root.right.leaf && root.right.maxEnd.After(period.Start) && root.right.period.Start.Before(period.End) {
+		it.intersecting(period, root.right, results)
 	}
 }
