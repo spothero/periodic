@@ -20,9 +20,16 @@ import (
 	"time"
 )
 
-// IntervalTree is a data structure for storing objects that contain time intervals (periods). It is implemented
-// as an augmented red-black binary search tree.
-type IntervalTree struct {
+// PeriodCollection is a data structure for storing time periods and arbitrary data objects associated with the
+// period. Once created and populated, PeriodCollection can be queried to answer questions including finding all
+// objects with associated periods that intersect another period and whether or not there is any period that
+// contains a given time.
+//
+// PeriodCollection is backed by an augmented self-balancing binary tree, implemented as a red-black tree.
+// This means that insertion and deletion operations take logarithmic time while querying can never exceed linear
+// time, but on average, as long as the query period is not large relative to the total time range stored, querying
+// should perform in better than linear time.
+type PeriodCollection struct {
 	root  *node
 	size  int
 	mutex sync.RWMutex
@@ -31,9 +38,9 @@ type IntervalTree struct {
 	nodes map[interface{}]*node
 }
 
-// NewIntervalTree initializes an interval tree
-func NewIntervalTree() *IntervalTree {
-	return &IntervalTree{nodes: make(map[interface{}]*node)}
+// NewPeriodCollection constructs a new PeriodCollection
+func NewPeriodCollection() *PeriodCollection {
+	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{leaf: true}}
 }
 
 // less decides if p1 comes before or after p2 for the purposes of tree traversal. The start of the period
@@ -42,26 +49,32 @@ func less(p1 Period, p2 Period) bool {
 	return p1.Start.Before(p2.Start)
 }
 
-// Insert adds a new node into the tree
-func (it *IntervalTree) Insert(period Period, key, contents interface{}) {
-	it.mutex.Lock()
-	defer it.mutex.Unlock()
+// Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
+// when inserting a new period. contents is an arbitrary object associated with the period inserted. If a period
+// already exists with the given key, an error will be returned.
+func (pc *PeriodCollection) Insert(period Period, key, contents interface{}) error {
+	pc.mutex.Lock()
+	defer pc.mutex.Unlock()
+	if _, ok := pc.nodes[key]; ok {
+		return fmt.Errorf("period with key %v already exists", key)
+	}
 	var inserted *node
-	if it.root == nil || it.root.leaf {
+	if pc.root == nil || pc.root.leaf {
 		inserted = newNode(period, key, contents, black)
 		inserted.maxEnd = period.End
-		it.root = inserted
+		pc.root = inserted
 	} else {
-		it.insert(period, key, contents, it.root, &inserted)
-		it.insertRepair(inserted)
+		pc.insert(period, key, contents, pc.root, &inserted)
+		pc.insertRepair(inserted)
 	}
-	it.size++
-	it.nodes[inserted.key] = inserted
+	pc.size++
+	pc.nodes[inserted.key] = inserted
+	return nil
 }
 
 // insert recursively a new red node containing a period and ID into the tree. The inserted node is stored in the
 // the inserted parameter.
-func (it *IntervalTree) insert(period Period, key, contents interface{}, root *node, inserted **node) *node {
+func (pc *PeriodCollection) insert(period Period, key, contents interface{}, root *node, inserted **node) *node {
 	if root.leaf {
 		*inserted = newNode(period, key, contents, red)
 		return *inserted
@@ -70,19 +83,19 @@ func (it *IntervalTree) insert(period Period, key, contents interface{}, root *n
 	root.maxEnd = MaxTime(root.maxEnd, period.End)
 
 	if less(period, root.period) {
-		root.left = it.insert(period, key, contents, root.left, inserted)
+		root.left = pc.insert(period, key, contents, root.left, inserted)
 		root.left.parent = root
 	} else {
-		root.right = it.insert(period, key, contents, root.right, inserted)
+		root.right = pc.insert(period, key, contents, root.right, inserted)
 		root.right.parent = root
 	}
 	return root
 }
 
 // insertRepair rebalances the tree to maintain the red-black property after an insertion
-func (it *IntervalTree) insertRepair(n *node) {
-	if n == it.root {
-		// n is the actual root of the tree, by definition it is always black
+func (pc *PeriodCollection) insertRepair(n *node) {
+	if n == pc.root {
+		// n is the actual root of the tree, by definition pc is always black
 		n.color = black
 		return
 	}
@@ -96,26 +109,26 @@ func (it *IntervalTree) insertRepair(n *node) {
 	uncleColor := uncle.nodeColor()
 
 	if uncleColor == red {
-		// the parent is red; if it has a red sibling, change parent & uncle to black and change grandparent to red
+		// the parent is red; if pc has a red sibling, change parent & uncle to black and change grandparent to red
 		uncle.color = black
 		n.parent.color = black
 		if n.parent.parent != nil {
 			n.parent.parent.color = red
-			it.insertRepair(n.parent.parent)
+			pc.insertRepair(n.parent.parent)
 			return
 		}
 	}
 
 	if uncleColor == black && n.parent.color == red {
-		// move n so that it is on the same side of its parent as its parent is to its grandparent (i.e. it is on the
+		// move n so that pc is on the same side of its parent as its parent is to its grandparent (i.e. pc is on the
 		// outside of the subtree)
 		isInsideRight := n.parent.isLeftChild() && !n.isLeftChild()
 		isInsideLeft := !n.parent.isLeftChild() && n.isLeftChild()
 		if isInsideRight {
-			it.rotate(n.parent, left)
+			pc.rotate(n.parent, left)
 			n = n.left
 		} else if isInsideLeft {
-			it.rotate(n.parent, right)
+			pc.rotate(n.parent, right)
 			n = n.right
 		}
 
@@ -124,9 +137,9 @@ func (it *IntervalTree) insertRepair(n *node) {
 		if n.parent.parent != nil {
 			n.parent.parent.color = red
 			if n.isLeftChild() {
-				it.rotate(n.parent.parent, right)
+				pc.rotate(n.parent.parent, right)
 			} else {
-				it.rotate(n.parent.parent, left)
+				pc.rotate(n.parent.parent, left)
 			}
 		}
 	}
@@ -139,7 +152,8 @@ const (
 	left
 )
 
-func (it *IntervalTree) rotate(n *node, direction rotationDirection) {
+// rotate rotates a node in the tree about node n either left or right.
+func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 	// y is the node that is going to take the place of n in the tree
 	var y *node
 	switch direction {
@@ -150,8 +164,8 @@ func (it *IntervalTree) rotate(n *node, direction rotationDirection) {
 	}
 
 	// move y into n's position
-	if n == it.root {
-		it.root = y
+	if n == pc.root {
+		pc.root = y
 	} else {
 		if n.isLeftChild() {
 			n.parent.left = y
@@ -179,26 +193,27 @@ func (it *IntervalTree) rotate(n *node, direction rotationDirection) {
 	}
 }
 
-// Delete removes the node with the provided key.
-func (it *IntervalTree) Delete(key interface{}) error {
-	it.mutex.Lock()
-	defer it.mutex.Unlock()
-	node, ok := it.nodes[key]
+// Delete removes the period and its associated contents with the provided key. If no period with the provided
+// key exists, an error is returned.
+func (pc *PeriodCollection) Delete(key interface{}) error {
+	pc.mutex.Lock()
+	defer pc.mutex.Unlock()
+	node, ok := pc.nodes[key]
 	if !ok {
 		return fmt.Errorf("could not delete node with key %v: key does not exist", key)
 	}
-	it.delete(node)
-	delete(it.nodes, key)
+	pc.delete(node)
+	delete(pc.nodes, key)
 	return nil
 }
 
-func (it *IntervalTree) delete(n *node) {
+func (pc *PeriodCollection) delete(n *node) {
 	// y is the node that is going to be deleted, z is the node that will be moved into y's place
 	var y *node
 	var z *node
 
 	if n.left.leaf || n.right.leaf {
-		// n has 0 or 1 children so it can be deleted
+		// n has 0 or 1 children so pc can be deleted
 		y = n
 	} else {
 		// n is an internal node, delete its successor and swap the contents of its successor into n
@@ -220,7 +235,7 @@ func (it *IntervalTree) delete(n *node) {
 			y.parent.right = z
 		}
 	} else {
-		it.root = z
+		pc.root = z
 	}
 	n.period, n.key, n.contents = y.period, y.key, y.contents
 
@@ -230,38 +245,38 @@ func (it *IntervalTree) delete(n *node) {
 	n.maxEnd = n.maxEndOfSubtree()
 
 	if y.color == black {
-		it.deleteRepair(z)
+		pc.deleteRepair(z)
 	}
 
-	it.size--
+	pc.size--
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
-func (it *IntervalTree) deleteRepair(n *node) {
-	if n == it.root || n.color == red {
+func (pc *PeriodCollection) deleteRepair(n *node) {
+	if n == pc.root || n.color == red {
 		n.color = black
 		return
 	}
-	it.deleteRepairCase1(n)
-	if it.deleteRepairCase2(n) {
-		it.deleteRepair(n.parent)
+	pc.deleteRepairCase1(n)
+	if pc.deleteRepairCase2(n) {
+		pc.deleteRepair(n.parent)
 		return
 	}
-	it.deleteRepairCase3(n)
-	it.deleteRepairCase4(n)
+	pc.deleteRepairCase3(n)
+	pc.deleteRepairCase4(n)
 }
 
 // deleteRepairCase1 handles the case of the deleted node's sibling being red. changes the parent's color to red and
 // the sibling's color to black and rotates to make the sibling the parent.
-func (it *IntervalTree) deleteRepairCase1(n *node) {
+func (pc *PeriodCollection) deleteRepairCase1(n *node) {
 	sibling := n.sibling()
 	if sibling.nodeColor() == red {
 		sibling.color = black
 		n.parent.color = red
 		if n.isLeftChild() {
-			it.rotate(n.parent, left)
+			pc.rotate(n.parent, left)
 		} else {
-			it.rotate(n.parent, right)
+			pc.rotate(n.parent, right)
 		}
 	}
 }
@@ -269,7 +284,7 @@ func (it *IntervalTree) deleteRepairCase1(n *node) {
 // deleteRepairCase2 handles the case of the deleted node's sibling being a leaf or the sibling and its children
 // colored black. It handles this case by changing the sibling to red and returns whether the parent needs
 // to be repaired.
-func (it *IntervalTree) deleteRepairCase2(n *node) bool {
+func (pc *PeriodCollection) deleteRepairCase2(n *node) bool {
 	sibling := n.sibling()
 	if sibling.leaf {
 		return true
@@ -291,17 +306,17 @@ func (it *IntervalTree) deleteRepairCase2(n *node) bool {
 // deleteRepairCase3 handles the case of the node's sibling colored black with a red child on the right if the deleted
 // node is on the right, or a red child on the left if the deleted node is on the left. It handles this case by
 // recoloring the sibling red and recoloring the appropriate child to black then rotating to move the sibling up.
-func (it *IntervalTree) deleteRepairCase3(n *node) {
+func (pc *PeriodCollection) deleteRepairCase3(n *node) {
 	sibling := n.sibling()
 	if !sibling.leaf && sibling.nodeColor() == black {
 		if sibling.right.nodeColor() == red && !n.isLeftChild() {
 			sibling.color = red
 			sibling.right.color = black
-			it.rotate(sibling, left)
+			pc.rotate(sibling, left)
 		} else if sibling.left.nodeColor() == red && n.isLeftChild() {
 			sibling.color = red
 			sibling.left.color = black
-			it.rotate(sibling, right)
+			pc.rotate(sibling, right)
 		}
 	}
 }
@@ -310,32 +325,32 @@ func (it *IntervalTree) deleteRepairCase3(n *node) {
 // node is on the left, or the sibling having a red child on the left if the deleted node is on the right. It recolors
 // the appropriate child of the sibling, makes the sibling the same color as the parent, makes the parent black, and
 // rotates to move the sibling up.
-func (it *IntervalTree) deleteRepairCase4(n *node) {
+func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 	sibling := n.sibling()
 	if !sibling.leaf && sibling.nodeColor() == black {
 		if sibling.left.nodeColor() == red && !n.isLeftChild() {
 			sibling.left.color = black
 			sibling.color = n.parent.color
 			n.parent.color = black
-			it.rotate(n.parent, right)
+			pc.rotate(n.parent, right)
 		} else if sibling.right.nodeColor() == red && n.isLeftChild() {
 			sibling.right.color = black
 			sibling.color = n.parent.color
 			n.parent.color = black
-			it.rotate(n.parent, left)
+			pc.rotate(n.parent, left)
 		}
 	}
 }
 
 // ContainsTime returns whether there is any stored period that contains the supplied time.
-func (it *IntervalTree) ContainsTime(time time.Time) bool {
-	it.mutex.RLock()
-	defer it.mutex.RUnlock()
-	return it.containsTime(it.root, time)
+func (pc *PeriodCollection) ContainsTime(time time.Time) bool {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	return pc.containsTime(pc.root, time)
 }
 
 // containsTime is the internal function that recursively searches the tree for the supplied time.
-func (it *IntervalTree) containsTime(root *node, time time.Time) bool {
+func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 	if root.leaf {
 		return false
 	}
@@ -343,34 +358,34 @@ func (it *IntervalTree) containsTime(root *node, time time.Time) bool {
 		return true
 	}
 	if !root.left.leaf && root.left.maxEnd.After(time) {
-		return it.containsTime(root.left, time)
+		return pc.containsTime(root.left, time)
 	}
-	return it.containsTime(root.right, time)
+	return pc.containsTime(root.right, time)
 }
 
-// Intersecting returns the contents of all intersecting objects. Period intersection is inclusive on the start time
-// but exclusive on the end time.
-func (it *IntervalTree) Intersecting(period Period) []interface{} {
-	it.mutex.RLock()
-	defer it.mutex.RUnlock()
-	results := make([]interface{}, 0, it.size)
-	it.intersecting(period, it.root, &results)
+// Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
+// Period intersection is inclusive on the start time but exclusive on the end time.
+func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	results := make([]interface{}, 0, pc.size)
+	if pc.root.leaf {
+		return results
+	}
+	pc.intersecting(query, pc.root, &results)
 	return results
 }
 
 // intersecting is the internal function that recursively searches the tree and adds all node contents to results
-func (it *IntervalTree) intersecting(period Period, root *node, results *[]interface{}) {
-	if root.leaf {
-		return
-	}
-	if root.period.Intersects(period) {
+func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
+	if root.period.Intersects(query) {
 		*results = append(*results, root.contents)
 	}
 	// TODO: the left and right subtrees can be searched concurrently
-	if !root.left.leaf && root.left.maxEnd.After(period.Start) {
-		it.intersecting(period, root.left, results)
+	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
+		pc.intersecting(query, root.left, results)
 	}
-	if !root.right.leaf && root.right.maxEnd.After(period.Start) && root.right.period.Start.Before(period.End) {
-		it.intersecting(period, root.right, results)
+	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
+		pc.intersecting(query, root.right, results)
 	}
 }
