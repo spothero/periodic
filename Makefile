@@ -19,5 +19,8 @@ vendor:
 test:
 	go test -race -v ./... -coverprofile=coverage.txt -covermode=atomic
 
+coverage: test
+	go tool cover -html=coverage.txt
+
 clean:
 	rm -rf vendor
