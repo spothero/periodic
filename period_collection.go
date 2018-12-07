@@ -382,3 +382,11 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]in
 		pc.intersecting(query, root.right, results)
 	}
 }
+
+// ContainsKey returns whether or not a period with a corresponding key exists.
+func (pc *PeriodCollection) ContainsKey(key interface{}) bool {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	_, ok := pc.nodes[key]
+	return ok
+}

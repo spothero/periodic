@@ -1508,3 +1508,31 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriodCollection_ContainsKey(t *testing.T) {
+	pc := PeriodCollection{
+		nodes: map[interface{}]*node{
+			1: {},
+		},
+	}
+	tests := []struct {
+		name    string
+		k       int
+		outcome bool
+	}{
+		{
+			"key in nodes map returns true",
+			1,
+			true,
+		}, {
+			"key not in nodes map returns false",
+			2,
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.outcome, pc.ContainsKey(test.k))
+		})
+	}
+}
