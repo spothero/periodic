@@ -990,3 +990,37 @@ func TestFloatingPeriod_FromTime(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriod_Equals(t *testing.T) {
+	chiTz, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	p := NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC))
+	tests := []struct {
+		name    string
+		other   Period
+		outcome bool
+	}{
+		{
+			"periods with same starts and ends are equal",
+			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC)),
+			true,
+		}, {
+			"periods with the same start and different ends are not equal",
+			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 1, time.UTC)),
+			false,
+		}, {
+			"periods with the different start and same ends are not equal",
+			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 1, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC)),
+			false,
+		}, {
+			"periods with the starts and ends in different times are the same when adjusted",
+			NewPeriod(time.Date(2018, 12, 7, 6, 0, 0, 0, chiTz), time.Date(2018, 12, 7, 11, 0, 0, 0, chiTz)),
+			true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.outcome, p.Equals(test.other))
+		})
+	}
+}

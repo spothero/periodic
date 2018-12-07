@@ -31,7 +31,6 @@ import (
 // should perform in better than linear time.
 type PeriodCollection struct {
 	root  *node
-	size  int
 	mutex sync.RWMutex
 	// nodes is an external mapping of a node's key to a pointer of the node since the interval tree is keyed on
 	// the node's period start time
@@ -68,7 +67,6 @@ func (pc *PeriodCollection) Insert(period Period, key, contents interface{}) err
 		pc.insert(period, key, contents, pc.root, &inserted)
 		pc.insertRepair(inserted)
 	}
-	pc.size++
 	pc.nodes[inserted.key] = inserted
 	return nil
 }
@@ -241,8 +239,6 @@ func (pc *PeriodCollection) delete(n *node) {
 	if y.color == black {
 		pc.deleteRepair(z)
 	}
-
-	pc.size--
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
@@ -336,6 +332,29 @@ func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 	}
 }
 
+// Update the period and associated contents with the given key. An error is returned if no period with the given
+// key exists.
+func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) error {
+	pc.mutex.Lock()
+	defer pc.mutex.Unlock()
+	oldNode, ok := pc.nodes[key]
+	if !ok {
+		return fmt.Errorf("could not update node with key %v: key does not exist", key)
+	}
+	if oldNode.period.Equals(newPeriod) {
+		// if the period hasn't changed, just swap the contents
+		oldNode.contents = newContents
+		return nil
+	}
+	// if the period has changed, delete the old node and insert a new one
+	pc.delete(oldNode)
+	var replacement *node
+	pc.insert(newPeriod, key, newContents, pc.root, &replacement)
+	pc.insertRepair(replacement)
+	pc.nodes[key] = replacement
+	return nil
+}
+
 // ContainsTime returns whether there is any stored period that contains the supplied time.
 func (pc *PeriodCollection) ContainsTime(time time.Time) bool {
 	pc.mutex.RLock()
@@ -373,7 +392,7 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		results := make([]interface{}, 0, pc.size)
+		results := make([]interface{}, 0, len(pc.nodes))
 		for {
 			select {
 			case intersection := <-intersections:
