@@ -233,7 +233,7 @@ func TestPeriodCollection_Insert(t *testing.T) {
 				{NewPeriod(time.Unix(20, 0), time.Unix(40, 0)), 0, true},
 			},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, 1, pc.size)
+				assert.Len(t, pc.nodes, 1)
 			},
 		},
 	}
@@ -1533,6 +1533,84 @@ func TestPeriodCollection_ContainsKey(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.outcome, pc.ContainsKey(test.k))
+		})
+	}
+}
+
+func TestPeriodCollection_Update(t *testing.T) {
+	tests := []struct {
+		name        string
+		setup       func() *PeriodCollection
+		updateKey   int
+		newContents int
+		newPeriod   Period
+		validate    func(t *testing.T, pc *PeriodCollection, err error)
+	}{
+		{
+			"updating a key that doesn't exist returns an error",
+			func() *PeriodCollection { return NewPeriodCollection() },
+			1,
+			1,
+			Period{},
+			func(t *testing.T, pc *PeriodCollection, err error) {
+				assert.Error(t, err)
+				assert.Len(t, pc.nodes, 0)
+				assert.True(t, pc.root.leaf)
+			},
+		}, {
+			"updating contents without updating the period swaps contents",
+			func() *PeriodCollection {
+				pc := NewPeriodCollection()
+				l := &node{contents: 1}
+				pc.root = &node{
+					left: l,
+				}
+				pc.nodes[0] = pc.root
+				pc.nodes[1] = l
+				return pc
+			},
+			1,
+			2,
+			Period{},
+			func(t *testing.T, pc *PeriodCollection, err error) {
+				assert.NoError(t, err)
+				l, ok := pc.nodes[1]
+				require.True(t, ok)
+				require.Equal(t, l, pc.root.left)
+				assert.Equal(t, l.contents, 2)
+				assert.Len(t, pc.nodes, 2)
+			},
+		}, {
+			"updating the period deletes and reinserts the node",
+			func() *PeriodCollection {
+				pc := NewPeriodCollection()
+				root := newNode(NewPeriod(time.Unix(10, 0), time.Unix(25, 0)), 0, 0, black)
+				l := newNode(NewPeriod(time.Unix(5, 0), time.Unix(30, 0)), 1, 1, red)
+				pc.root = root
+				root.left, l.parent = l, root
+				pc.nodes[0] = root
+				pc.nodes[1] = l
+				return pc
+			},
+			1,
+			2,
+			NewPeriod(time.Unix(20, 0), time.Unix(30, 0)),
+			func(t *testing.T, pc *PeriodCollection, err error) {
+				// the node should move from the the parent's left to right
+				assert.NoError(t, err)
+				r, ok := pc.nodes[1]
+				require.True(t, ok)
+				require.Equal(t, r, pc.root.right)
+				assert.Equal(t, r.contents, 2)
+				assert.True(t, pc.root.left.leaf)
+				assert.Len(t, pc.nodes, 2)
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pc := test.setup()
+			test.validate(t, pc, pc.Update(test.updateKey, test.newPeriod, test.newContents))
 		})
 	}
 }

@@ -157,6 +157,13 @@ func (p Period) Less(d time.Duration) bool {
 	return p.End.Sub(p.Start) < d
 }
 
+// Equals returns whether or not two periods represent the same timespan. Periods are equal if their start time
+// and end times are the same, even if they are located in different timezones. For example a period from 12:00 - 17:00
+// UTC and a period from 7:00 - 12:00 UTC-5 on the same day are considered equal.
+func (p Period) Equals(other Period) bool {
+	return p.Start.Equal(other.Start) && p.End.Equal(other.End)
+}
+
 // MaxTime returns the maximum of two timestamps, or the first timestamp if equal
 func MaxTime(t1 time.Time, t2 time.Time) time.Time {
 	if t2.After(t1) {
