@@ -15,6 +15,7 @@
 package periodic
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -361,26 +362,50 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	results := make([]interface{}, 0, pc.size)
+
 	if pc.root.leaf {
-		return results
+		return make([]interface{}, 0)
 	}
-	pc.intersecting(query, pc.root, &results)
-	return results
+
+	var wg sync.WaitGroup
+	intersections := make(chan interface{})
+	resultsChan := make(chan []interface{})
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		results := make([]interface{}, 0, pc.size)
+		for {
+			select {
+			case intersection := <-intersections:
+				results = append(results, intersection)
+			case <-ctx.Done():
+				resultsChan <- results
+			}
+		}
+	}()
+
+	wg.Add(1)
+	go pc.intersecting(query, pc.root, intersections, &wg)
+	wg.Wait()
+	cancel()
+
+	return <-resultsChan
 }
 
 // intersecting is the internal function that recursively searches the tree and adds all node contents to results
-func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
+func (pc *PeriodCollection) intersecting(query Period, root *node, results chan interface{}, wg *sync.WaitGroup) {
 	if root.period.Intersects(query) {
-		*results = append(*results, root.contents)
+		results <- root.contents
 	}
-	// TODO: the left and right subtrees can be searched concurrently
 	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
-		pc.intersecting(query, root.left, results)
+		wg.Add(1)
+		go pc.intersecting(query, root.left, results, wg)
 	}
 	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
-		pc.intersecting(query, root.right, results)
+		wg.Add(1)
+		go pc.intersecting(query, root.right, results, wg)
 	}
+	wg.Done()
 }
 
 // ContainsKey returns whether or not a period with a corresponding key exists.
