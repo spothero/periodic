@@ -26,7 +26,7 @@ const (
 )
 
 // node is the private interval tree node type that contains the node's subtree, the maximum end time of the node's
-// subtree, and its color. Instead of storing leaves as nil, leaves are stored as nodes with the leaf property
+// subtree, and its color. Instead of storing leaves as nil, leaves are stored as sentinel nodes with the leaf property
 // set to make deletions easier.
 type node struct {
 	period   Period
@@ -83,7 +83,7 @@ func (n *node) nodeColor() color {
 	return n.color
 }
 
-// successor the next node that would be traversed in an in-order traversal.
+// successor returns the next node that would be traversed in an in-order traversal.
 // This is either the the minimum value in node n's right subtree or the first ancestor that is to the left of n.
 func (n *node) successor() *node {
 	if !n.right.leaf {
@@ -106,6 +106,7 @@ func (n *node) successor() *node {
 	return parent
 }
 
+// maxEndOfSubtree returns the latest end time of the node's subtree.
 func (n *node) maxEndOfSubtree() time.Time {
 	if n.left.leaf && n.right.leaf {
 		return n.period.End
@@ -117,4 +118,9 @@ func (n *node) maxEndOfSubtree() time.Time {
 		return MaxTime(n.period.End, n.left.maxEnd)
 	}
 	return MaxTime(n.period.End, MaxTime(n.left.maxEnd, n.right.maxEnd))
+}
+
+// periodToLeft decides whether a period belongs to the left of the node.
+func (n *node) periodToLeft(p Period) bool {
+	return p.Start.Before(n.period.Start)
 }

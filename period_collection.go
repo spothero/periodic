@@ -21,13 +21,12 @@ import (
 )
 
 // PeriodCollection is a data structure for storing time periods and arbitrary data objects associated with the
-// period. Once created and populated, PeriodCollection can be queried to answer questions including finding all
-// objects with associated periods that intersect another period and whether or not there is any period that
-// contains a given time.
-//
-// PeriodCollection is backed by an augmented self-balancing binary tree, implemented as a red-black tree.
+// period.Once populated, PeriodCollection allows callers to quickly identify subsets of the collection
+// that intersect with another period or find periods that contain a given time.
+
+// PeriodCollection is implemented on top of a self-balancing red-black tree.
 // This means that insertion and deletion operations take logarithmic time while querying can never exceed linear
-// time, but on average, as long as the query period is not large relative to the total time range stored, querying
+// time. But on average, as long as the query period is not large relative to the total time range stored, querying
 // should perform in better than linear time.
 type PeriodCollection struct {
 	root  *node
@@ -38,15 +37,16 @@ type PeriodCollection struct {
 	nodes map[interface{}]*node
 }
 
+type rotationDirection int
+
+const (
+	right rotationDirection = iota
+	left
+)
+
 // NewPeriodCollection constructs a new PeriodCollection
 func NewPeriodCollection() *PeriodCollection {
 	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{leaf: true}}
-}
-
-// less decides if p1 comes before or after p2 for the purposes of tree traversal. The start of the period
-// is used as the key in the tree.
-func less(p1 Period, p2 Period) bool {
-	return p1.Start.Before(p2.Start)
 }
 
 // Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
@@ -72,7 +72,7 @@ func (pc *PeriodCollection) Insert(period Period, key, contents interface{}) err
 	return nil
 }
 
-// insert recursively a new red node containing a period and ID into the tree. The inserted node is stored in the
+// insert recursively adds new red node containing a period and ID into the tree. The inserted node is stored in the
 // the inserted parameter.
 func (pc *PeriodCollection) insert(period Period, key, contents interface{}, root *node, inserted **node) *node {
 	if root.leaf {
@@ -82,7 +82,7 @@ func (pc *PeriodCollection) insert(period Period, key, contents interface{}, roo
 	// augment the tree with the maximum end time of its subtree
 	root.maxEnd = MaxTime(root.maxEnd, period.End)
 
-	if less(period, root.period) {
+	if root.periodToLeft(period) {
 		root.left = pc.insert(period, key, contents, root.left, inserted)
 		root.left.parent = root
 	} else {
@@ -144,13 +144,6 @@ func (pc *PeriodCollection) insertRepair(n *node) {
 		}
 	}
 }
-
-type rotationDirection int
-
-const (
-	right rotationDirection = iota
-	left
-)
 
 // rotate rotates a node in the tree about node n either left or right.
 func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {

@@ -15,9 +15,10 @@
 package periodic
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNode_isLeftChild(t *testing.T) {
@@ -164,6 +165,36 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, test.node.maxEndOfSubtree())
+		})
+	}
+}
+
+func TestNode_periodToLeft(t *testing.T) {
+	n := &node{
+		period: NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
+	}
+	tests := []struct {
+		name    string
+		p       Period
+		outcome bool
+	}{
+		{
+			"start before node start is to the left",
+			Period{Start: time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)},
+			true,
+		}, {
+			"start after node start is not to the left",
+			Period{Start: time.Date(2019, 1, 1, 1, 1, 1, 1, time.UTC)},
+			false,
+		}, {
+			"start equal to node start is not to the left",
+			Period{Start: time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)},
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.outcome, n.periodToLeft(test.p))
 		})
 	}
 }
