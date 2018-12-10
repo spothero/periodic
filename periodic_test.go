@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPeriodIntersects(t *testing.T) {
+func TestPeriod_Intersects(t *testing.T) {
 	testTime1, err := time.Parse(time.RFC3339, "2018-05-25T13:14:15Z")
 	require.NoError(t, err)
 	testTime2, err := time.Parse(time.RFC3339, "2018-05-26T13:14:15Z")
@@ -74,7 +74,7 @@ func TestPeriodIntersects(t *testing.T) {
 	}
 }
 
-func TestPeriodContains(t *testing.T) {
+func TestPeriod_Contains(t *testing.T) {
 	testTime1, err := time.Parse(time.RFC3339, "2018-05-25T13:14:15Z")
 	require.NoError(t, err)
 	testTime2, err := time.Parse(time.RFC3339, "2018-05-26T13:14:15Z")
@@ -145,7 +145,7 @@ func TestPeriodContains(t *testing.T) {
 	}
 }
 
-func TestPeriodContainsAny(t *testing.T) {
+func TestPeriod_ContainsAny(t *testing.T) {
 	start, err := time.Parse(time.RFC3339, "2018-05-24T07:14:16-06:00")
 	require.NoError(t, err)
 	end, err := time.Parse(time.RFC3339, "2018-05-25T07:14:14-06:00")
@@ -227,7 +227,7 @@ func TestPeriodContainsAny(t *testing.T) {
 	}
 }
 
-func TestPeriodLess(t *testing.T) {
+func TestPeriod_Less(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -258,7 +258,7 @@ func TestPeriodLess(t *testing.T) {
 	}
 }
 
-func TestPeriodContainsTime(t *testing.T) {
+func TestPeriod_ContainsTime(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -300,6 +300,16 @@ func TestPeriodContainsTime(t *testing.T) {
 			false,
 			NewPeriod(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
 			time.Date(2017, 12, 31, 23, 59, 0, 0, time.UTC),
+		}, {
+			"Period with only end time contains anything before the end",
+			true,
+			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
+			time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC),
+		}, {
+			"Period with only end time does not contain anything after the end",
+			false,
+			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
+			time.Date(2018, 1, 2, 0, 0, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
@@ -309,7 +319,7 @@ func TestPeriodContainsTime(t *testing.T) {
 	}
 }
 
-func TestMax(t *testing.T) {
+func TestMaxTime(t *testing.T) {
 	t1, err := time.Parse(time.RFC3339, "2018-05-24T07:14:16-06:00")
 	require.NoError(t, err)
 	t2, err := time.Parse(time.RFC3339, "2018-05-24T07:14:16-06:00")
@@ -344,7 +354,7 @@ func TestMax(t *testing.T) {
 	}
 }
 
-func TestMin(t *testing.T) {
+func TestMinTime(t *testing.T) {
 	t1, err := time.Parse(time.RFC3339, "2018-05-24T07:14:16-06:00")
 	require.NoError(t, err)
 	t2, err := time.Parse(time.RFC3339, "2018-05-24T07:14:16-06:00")
@@ -379,7 +389,7 @@ func TestMin(t *testing.T) {
 	}
 }
 
-func TestApplicableDaysOfWeekFromContinuous(t *testing.T) {
+func TestNewApplicableDaysMonStart(t *testing.T) {
 	continuousDayTests := []struct {
 		startDay       int
 		endDay         int
@@ -403,7 +413,41 @@ func TestApplicableDaysOfWeekFromContinuous(t *testing.T) {
 	}
 }
 
-func TestFloatingPeriodContiguous(t *testing.T) {
+func TestNewFloatingPeriod(t *testing.T) {
+	cst, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	tests := []struct {
+		name             string
+		s, e             time.Duration
+		d                ApplicableDays
+		loc, expectedLoc *time.Location
+	}{
+		{
+			"creating a new floating period works",
+			time.Second, 2 * time.Second,
+			ApplicableDays{Monday: true, Friday: true},
+			cst,
+			cst,
+		}, {
+			"creating a new floating period nil time zone loads UTC",
+			time.Second, 2 * time.Second,
+			ApplicableDays{Monday: true, Friday: true},
+			nil,
+			time.UTC,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fp := NewFloatingPeriod(test.s, test.e, test.d, test.loc)
+			assert.Equal(t, test.s, fp.Start)
+			assert.Equal(t, test.e, fp.End)
+			assert.Equal(t, test.d, fp.Days)
+			assert.Equal(t, test.expectedLoc, fp.Location)
+		})
+	}
+}
+
+func TestFloatingPeriod_Contiguous(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -439,7 +483,7 @@ func TestFloatingPeriodContiguous(t *testing.T) {
 	}
 }
 
-func TestFloatingPeriodAtDate(t *testing.T) {
+func TestFloatingPeriod_AtDate(t *testing.T) {
 	chiTz, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
 	tests := []struct {
@@ -479,7 +523,7 @@ func TestFloatingPeriodAtDate(t *testing.T) {
 	}
 }
 
-func TestFloatingPeriodContains(t *testing.T) {
+func TestFloatingPeriod_Contains(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -541,7 +585,7 @@ func TestFloatingPeriodContains(t *testing.T) {
 	}
 }
 
-func TestFloatingPeriodIntersects(t *testing.T) {
+func TestFloatingPeriod_Intersects(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -654,7 +698,7 @@ func TestFloatingPeriodIntersects(t *testing.T) {
 	}
 }
 
-func TestFloatingPeriodContainsTime(t *testing.T) {
+func TestFloatingPeriod_ContainsTime(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -695,7 +739,7 @@ func TestFloatingPeriodContainsTime(t *testing.T) {
 	}
 }
 
-func TestFloatingPeriodContainsStart(t *testing.T) {
+func TestFloatingPeriod_ContainsStart(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -741,7 +785,7 @@ func TestFloatingPeriodContainsStart(t *testing.T) {
 	}
 }
 
-func TestFloatingPeriodContainsEnd(t *testing.T) {
+func TestFloatingPeriod_ContainsEnd(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -768,6 +812,16 @@ func TestFloatingPeriodContainsEnd(t *testing.T) {
 			false,
 			NewFloatingPeriod(time.Duration(21)*time.Hour, time.Duration(5)*time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC),
 			NewPeriod(time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 5, 0, 0, 0, time.UTC)),
+		}, {
+			"Floating Period 21:00-05:00 Tu only, request for M - Tu 22:00-04:00 is not contained",
+			false,
+			NewFloatingPeriod(time.Duration(21)*time.Hour, time.Duration(5)*time.Hour, ApplicableDays{Tuesday: true}, time.UTC),
+			NewPeriod(time.Date(2018, 1, 1, 22, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 4, 0, 0, 0, time.UTC)),
+		}, {
+			"Floating Period 05:00-21:00 Tu only, request for M 12:00 - 17:00 is not contained",
+			false,
+			NewFloatingPeriod(time.Duration(5)*time.Hour, time.Duration(21)*time.Hour, ApplicableDays{Tuesday: true}, time.UTC),
+			NewPeriod(time.Date(2018, 1, 1, 12, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 17, 0, 0, 0, time.UTC)),
 		},
 	}
 	for _, test := range tests {
@@ -777,7 +831,42 @@ func TestFloatingPeriodContainsEnd(t *testing.T) {
 	}
 }
 
-func TestContinuousPeriodAtDate(t *testing.T) {
+func TestNewContinuousPeriod(t *testing.T) {
+	cst, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	tests := []struct {
+		name             string
+		s, e             time.Duration
+		sDow, eDow       time.Weekday
+		loc, expectedLoc *time.Location
+	}{
+		{
+			"creating a new continuous period works",
+			time.Second, 2 * time.Second,
+			time.Monday, time.Thursday,
+			cst,
+			cst,
+		}, {
+			"creating a new continuous period nil time zone loads UTC",
+			time.Second, 2 * time.Second,
+			time.Friday, time.Monday,
+			nil,
+			time.UTC,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cp := NewContinuousPeriod(test.s, test.e, test.sDow, test.eDow, test.loc)
+			assert.Equal(t, test.s, cp.Start)
+			assert.Equal(t, test.e, cp.End)
+			assert.Equal(t, test.sDow, cp.StartDOW)
+			assert.Equal(t, test.eDow, cp.EndDOW)
+			assert.Equal(t, test.expectedLoc, cp.Location)
+		})
+	}
+}
+
+func TestContinuousPeriod_AtDate(t *testing.T) {
 	chiTz, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
 	laTz, err := time.LoadLocation("America/Los_Angeles")
@@ -837,7 +926,7 @@ func TestContinuousPeriodAtDate(t *testing.T) {
 	}
 }
 
-func TestContinuousPeriodContains(t *testing.T) {
+func TestContinuousPeriod_Contains(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -868,7 +957,7 @@ func TestContinuousPeriodContains(t *testing.T) {
 	}
 }
 
-func TestTimeApplicable(t *testing.T) {
+func TestApplicableDays_TimeApplicable(t *testing.T) {
 	chiTZ, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
 	tests := []struct {
@@ -1021,6 +1110,42 @@ func TestPeriod_Equals(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.outcome, p.Equals(test.other))
+		})
+	}
+}
+
+func TestMonStartToSunStart(t *testing.T) {
+	tests := []struct {
+		name        string
+		monStartDow int
+		sunStartDow time.Weekday
+		err         bool
+	}{
+		{
+			"0 turns into Monday", 0, time.Monday, false,
+		}, {
+			"1 turns into Tuesday", 1, time.Tuesday, false,
+		}, {
+			"2 turns into Wednesday", 2, time.Wednesday, false,
+		}, {
+			"3 turns into Thursday", 3, time.Thursday, false,
+		}, {
+			"4 turns into Friday", 4, time.Friday, false,
+		}, {
+			"5 turns into Saturday", 5, time.Saturday, false,
+		}, {
+			"6 turns into Sunday", 6, time.Sunday, false,
+		}, {
+			"anything not 0-6 returns an error", 7, time.Sunday, true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			outcome, err := MonStartToSunStart(test.monStartDow)
+			assert.Equal(t, test.sunStartDow, outcome)
+			if test.err {
+				assert.Error(t, err)
+			}
 		})
 	}
 }
