@@ -24,7 +24,7 @@ import (
 // PeriodCollection is a data structure for storing time periods and arbitrary data objects associated with the
 // period.Once populated, PeriodCollection allows callers to quickly identify subsets of the collection
 // that intersect with another period or find periods that contain a given time.
-
+//
 // PeriodCollection is implemented on top of a self-balancing red-black tree.
 // This means that insertion and deletion operations take logarithmic time while querying can never exceed linear
 // time. But on average, as long as the query period is not large relative to the total time range stored, querying
@@ -42,6 +42,18 @@ type rotationDirection int
 const (
 	right rotationDirection = iota
 	left
+)
+
+// TraversalOrder is the type of depth-first search to use when traversing PeriodCollection's backing tree
+type TraversalOrder int
+
+const (
+	// PreOrder corresponds to a pre-order depth-first traversal (i.e. root, left, right)
+	PreOrder = iota
+	// InOrder corresponds to an in-order depth-first traversal (i.e. left, root, right)
+	InOrder
+	// PostOrder corresponds to a post-order depth-first traversal (i.e. left, right, root)
+	PostOrder
 )
 
 // NewPeriodCollection constructs a new PeriodCollection
@@ -484,4 +496,32 @@ func (pc *PeriodCollection) ContainsKey(key interface{}) bool {
 	defer pc.mutex.RUnlock()
 	_, ok := pc.nodes[key]
 	return ok
+}
+
+// DepthFirstTraverse traverses the period collection's backing tree depth-first and returns the contents of every
+// node in the tree by the ordering given.
+func (pc *PeriodCollection) DepthFirstTraverse(order TraversalOrder) []interface{} {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	nodeContents := make([]interface{}, 0, len(pc.nodes))
+	pc.depthFirstTraverse(pc.root, order, &nodeContents)
+	return nodeContents
+}
+
+// depthFirstTraverse is the internal recursive function for traversing the interval tree.
+func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, visitedContents *[]interface{}) {
+	if n.leaf {
+		return
+	}
+	if order == PreOrder {
+		*visitedContents = append(*visitedContents, n.contents)
+	}
+	pc.depthFirstTraverse(n.left, order, visitedContents)
+	if order == InOrder {
+		*visitedContents = append(*visitedContents, n.contents)
+	}
+	pc.depthFirstTraverse(n.right, order, visitedContents)
+	if order == PostOrder {
+		*visitedContents = append(*visitedContents, n.contents)
+	}
 }

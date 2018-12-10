@@ -1669,3 +1669,60 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriodCollection_DepthFirstTraverse(t *testing.T) {
+	/*
+	     D
+	    / \
+	   C   E
+	  / \
+	 A   B
+	*/
+	tree := PeriodCollection{
+		root: &node{
+			contents: "D",
+			left: &node{
+				contents: "C",
+				left: &node{
+					contents: "A",
+					left:     &node{leaf: true},
+					right:    &node{leaf: true},
+				},
+				right: &node{
+					contents: "B",
+					left:     &node{leaf: true},
+					right:    &node{leaf: true},
+				},
+			},
+			right: &node{
+				contents: "E",
+				left:     &node{leaf: true},
+				right:    &node{leaf: true},
+			},
+		},
+	}
+	tests := []struct {
+		name            string
+		order           TraversalOrder
+		expectedOutcome []interface{}
+	}{
+		{
+			"traverse pre-order works",
+			PreOrder,
+			[]interface{}{"D", "C", "A", "B", "E"},
+		}, {
+			"traverse in-order works",
+			InOrder,
+			[]interface{}{"A", "C", "B", "D", "E"},
+		}, {
+			"traverse post-order works",
+			PostOrder,
+			[]interface{}{"A", "B", "C", "E", "D"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedOutcome, tree.DepthFirstTraverse(test.order))
+		})
+	}
+}
