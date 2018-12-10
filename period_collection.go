@@ -432,7 +432,7 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results chan 
 // found.
 func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
 	pc.mutex.RLock()
-	pc.mutex.RUnlock()
+	defer pc.mutex.RUnlock()
 	if pc.root.leaf {
 		return false
 	}

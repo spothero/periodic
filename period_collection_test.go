@@ -1616,12 +1616,6 @@ func TestPeriodCollection_Update(t *testing.T) {
 }
 
 func TestPeriodCollection_AnyIntersecting(t *testing.T) {
-	//periods := []Period{
-	//	NewPeriod(time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 0, 0, 0, 0, time.UTC)),
-	//	NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
-	//	NewPeriod(time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC)),
-	//	NewPeriod(time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 0, 0, 0, 0, time.UTC)),
-	//}
 	tests := []struct {
 		name             string
 		createCollection func(t *testing.T) *PeriodCollection
