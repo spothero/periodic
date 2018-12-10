@@ -1623,7 +1623,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 		expectedOutcome  bool
 	}{
 		{
-			"searching left and right subtree concurrently with intersection works",
+			"searching left and right subtree concurrently with intersections works",
 			func(t *testing.T) *PeriodCollection {
 				periods := []Period{
 					// becomes left
