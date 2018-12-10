@@ -427,6 +427,57 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results chan 
 	wg.Done()
 }
 
+// AnyIntersecting returns whether or not there are any periods in the collection that intersect the query period.
+// Compared to Intersecting, this method is more efficient because it will terminate early once an intersection is
+// found.
+func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	if pc.root.leaf {
+		return false
+	}
+
+	found := make(chan bool, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go pc.anyIntersecting(query, pc.root, found, &wg)
+	wg.Wait()
+
+	// If there's a message on the channel an intersection was found. If not, the tree has been exhaustively searched
+	// and there was no intersection found.
+	select {
+	case result := <-found:
+		return result
+	default:
+		return false
+	}
+}
+
+// anyIntersecting is the internal function that recursively searches the tree and notifies the caller on the
+// found channel whether or not it has found an intersection.
+func (pc *PeriodCollection) anyIntersecting(query Period, root *node, found chan bool, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if root.period.Intersects(query) {
+		// found has a buffer of 1, so if the channel is not at capacity this is the first branch to find an
+		// intersection; notify the channel and decrement the wait group counter. Otherwise, just exit since some
+		// other branch has found an intersection and placed a message on the channel.
+		select {
+		case found <- true:
+			return
+		default:
+			return
+		}
+	}
+	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
+		wg.Add(1)
+		go pc.anyIntersecting(query, root.left, found, wg)
+	}
+	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
+		wg.Add(1)
+		go pc.anyIntersecting(query, root.right, found, wg)
+	}
+}
+
 // ContainsKey returns whether or not a period with a corresponding key exists.
 func (pc *PeriodCollection) ContainsKey(key interface{}) bool {
 	pc.mutex.RLock()
