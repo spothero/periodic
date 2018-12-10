@@ -70,22 +70,28 @@ func (pc *PeriodCollection) Insert(period Period, key, contents interface{}) err
 	if _, ok := pc.nodes[key]; ok {
 		return fmt.Errorf("period with key %v already exists", key)
 	}
+	pc.insert(period, key, contents)
+	return nil
+}
+
+// insert is the internal function that adds a new red node to the tree. Note this function does not lock the mutex,
+// that must be done by the caller.
+func (pc *PeriodCollection) insert(period Period, key, contents interface{}) {
 	var inserted *node
 	if pc.root == nil || pc.root.leaf {
 		inserted = newNode(period, key, contents, black)
 		inserted.maxEnd = period.End
 		pc.root = inserted
 	} else {
-		pc.insert(period, key, contents, pc.root, &inserted)
+		pc.insertRecursive(period, key, contents, pc.root, &inserted)
 		pc.insertRepair(inserted)
 	}
 	pc.nodes[inserted.key] = inserted
-	return nil
 }
 
-// insert recursively adds new red node containing a period and ID into the tree. The inserted node is stored in the
+// insertRecursive recursively adds new red node containing a period and ID into the tree. The inserted node is stored in the
 // the inserted parameter.
-func (pc *PeriodCollection) insert(period Period, key, contents interface{}, root *node, inserted **node) *node {
+func (pc *PeriodCollection) insertRecursive(period Period, key, contents interface{}, root *node, inserted **node) *node {
 	if root.leaf {
 		*inserted = newNode(period, key, contents, red)
 		return *inserted
@@ -94,10 +100,10 @@ func (pc *PeriodCollection) insert(period Period, key, contents interface{}, roo
 	root.maxEnd = MaxTime(root.maxEnd, period.End)
 
 	if root.periodToLeft(period) {
-		root.left = pc.insert(period, key, contents, root.left, inserted)
+		root.left = pc.insertRecursive(period, key, contents, root.left, inserted)
 		root.left.parent = root
 	} else {
-		root.right = pc.insert(period, key, contents, root.right, inserted)
+		root.right = pc.insertRecursive(period, key, contents, root.right, inserted)
 		root.right.parent = root
 	}
 	return root
@@ -360,10 +366,7 @@ func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContent
 	}
 	// if the period has changed, delete the old node and insert a new one
 	pc.delete(oldNode)
-	var replacement *node
-	pc.insert(newPeriod, key, newContents, pc.root, &replacement)
-	pc.insertRepair(replacement)
-	pc.nodes[key] = replacement
+	pc.insert(newPeriod, key, newContents)
 	return nil
 }
 

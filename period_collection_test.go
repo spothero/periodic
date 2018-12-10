@@ -1605,6 +1605,26 @@ func TestPeriodCollection_Update(t *testing.T) {
 				assert.True(t, pc.root.left.leaf)
 				assert.Len(t, pc.nodes, 2)
 			},
+		}, {
+			"updating the root's period works",
+			func() *PeriodCollection {
+				pc := NewPeriodCollection()
+				root := newNode(NewPeriod(time.Unix(10, 0), time.Unix(25, 0)), 0, 0, black)
+				pc.root = root
+				pc.nodes[0] = root
+				return pc
+			},
+			0,
+			1,
+			NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
+			func(t *testing.T, pc *PeriodCollection, err error) {
+				assert.NoError(t, err)
+				root, ok := pc.nodes[0]
+				require.True(t, ok)
+				assert.Equal(t, root, pc.root)
+				assert.Equal(t, 1, pc.root.contents)
+				assert.Equal(t, time.Unix(30, 0), pc.root.period.End)
+			},
 		},
 	}
 	for _, test := range tests {
