@@ -427,6 +427,47 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results chan 
 	wg.Done()
 }
 
+// AnyIntersecting returns whether or not there are any periods in the collection that intersect the query period.
+// Compared to Intersecting, this method is more efficient because it will terminate early once an intersection is
+// found.
+func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
+	pc.mutex.RLock()
+	pc.mutex.RUnlock()
+	if pc.root.leaf {
+		return false
+	}
+	found := make(chan bool)
+	go pc.anyIntersecting(query, pc.root, found)
+	result := <-found
+	return result
+}
+
+// anyIntersecting is the internal function that recursively searches the tree and notifies the caller on the
+// found channel whether or not it has found an intersection.
+func (pc *PeriodCollection) anyIntersecting(query Period, root *node, found chan bool) {
+	if root.period.Intersects(query) {
+		select {
+		case found <- true:
+			return
+		default:
+			// intersection found in another branch searched in parallel
+			return
+		}
+	}
+	searchLeft := !root.left.leaf && root.left.maxEnd.After(query.Start)
+	searchRight := !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End)
+	if searchLeft || searchRight {
+		if searchLeft {
+			go pc.anyIntersecting(query, root.left, found)
+		}
+		if searchRight {
+			go pc.anyIntersecting(query, root.right, found)
+		}
+		return
+	}
+	found <- false
+}
+
 // ContainsKey returns whether or not a period with a corresponding key exists.
 func (pc *PeriodCollection) ContainsKey(key interface{}) bool {
 	pc.mutex.RLock()
