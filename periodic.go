@@ -21,8 +21,6 @@ import (
 )
 
 const (
-	// MsInSec is the number of milliseconds in a second
-	MsInSec = 1000
 	// HoursInDay is the number of hours in a single day
 	HoursInDay = 24
 	// DaysInWeek is the number of days in a week
@@ -126,14 +124,12 @@ func (p Period) Intersects(other Period) bool {
 func (p Period) Contains(other Period) bool {
 	s := p.Start.Before(other.Start) || p.Start.Equal(other.Start)
 	e := p.End.After(other.End) || p.End.Equal(other.End)
-	if !p.Start.IsZero() && !p.End.IsZero() {
-		return s && e
-	} else if p.Start.IsZero() && !p.End.IsZero() {
+	if p.Start.IsZero() && !p.End.IsZero() {
 		return e
 	} else if !p.Start.IsZero() && p.End.IsZero() {
 		return s
 	}
-	return true
+	return s && e
 }
 
 // ContainsAny returns true if the other time periods start or end is contained within the Period
@@ -217,10 +213,8 @@ func (ad ApplicableDays) TimeApplicable(t time.Time, location *time.Location) bo
 		return ad.Thursday
 	case time.Friday:
 		return ad.Friday
-	case time.Saturday:
-		return ad.Saturday
 	default:
-		return false
+		return ad.Saturday
 	}
 }
 
@@ -401,10 +395,11 @@ func (fp FloatingPeriod) ContainsStart(period Period) bool {
 // ContainsEnd determines if the FloatingPeriod contains the end of a given period
 func (fp FloatingPeriod) ContainsEnd(period Period) bool {
 	offsetHours := fp.AtDate(period.End)
+	fmt.Printf("offset hours start: %v, end: %v\n", offsetHours.Start, offsetHours.End)
 	midnightEnd := time.Date(period.End.Year(), period.End.Month(), period.End.Day(), 0, 0, 0, 0, fp.Location)
 
 	if fp.Start > fp.End {
-		// If this is an overnight rule and the rental ends during the overnight period, we want to
+		// If this is an overnight rule and the period ends during the overnight period, we want to
 		// know if the day before the end day is applicable.
 		if period.End.Before(offsetHours.End) || period.End.Equal(offsetHours.End) {
 			if !fp.Days.TimeApplicable(period.End.AddDate(0, 0, -1), fp.Location) {
@@ -414,8 +409,7 @@ func (fp FloatingPeriod) ContainsEnd(period Period) bool {
 		}
 	}
 
-	// Else, if this an overnight rule ending during the second portion of the end day, we want
-	// know if the rule is applicable for that day.
+	// Else, if this not an overnight rule, we want know if the rule is applicable for that day.
 	if !fp.Days.TimeApplicable(period.End, fp.Location) {
 		return false
 	}
