@@ -395,7 +395,6 @@ func (fp FloatingPeriod) ContainsStart(period Period) bool {
 // ContainsEnd determines if the FloatingPeriod contains the end of a given period
 func (fp FloatingPeriod) ContainsEnd(period Period) bool {
 	offsetHours := fp.AtDate(period.End)
-	fmt.Printf("offset hours start: %v, end: %v\n", offsetHours.Start, offsetHours.End)
 	midnightEnd := time.Date(period.End.Year(), period.End.Month(), period.End.Day(), 0, 0, 0, 0, fp.Location)
 
 	if fp.Start > fp.End {
