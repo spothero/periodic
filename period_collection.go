@@ -395,43 +395,25 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-
+	results := make([]interface{}, 0, len(pc.nodes))
 	if pc.root.leaf {
-		return make([]interface{}, 0)
+		return results
 	}
-
-	var wg sync.WaitGroup
-	intersections := make(chan interface{}, len(pc.nodes))
-
-	wg.Add(1)
-	go pc.intersecting(query, pc.root, intersections, &wg)
-	wg.Wait()
-	close(intersections)
-
-	results := make([]interface{}, 0, len(intersections))
-	for intersection := range intersections {
-		results = append(results, intersection)
-	}
-
+	pc.intersecting(query, pc.root, &results)
 	return results
 }
 
 // intersecting is the internal function that recursively searches the tree and adds all node contents to results
-func (pc *PeriodCollection) intersecting(query Period, root *node, results chan interface{}, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
 	if root.period.Intersects(query) {
-		results <- root.contents
+		*results = append(*results, root.contents)
 	}
-	var childWg sync.WaitGroup
 	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
-		childWg.Add(1)
-		go pc.intersecting(query, root.left, results, &childWg)
+		pc.intersecting(query, root.left, results)
 	}
 	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
-		childWg.Add(1)
-		go pc.intersecting(query, root.right, results, &childWg)
+		pc.intersecting(query, root.right, results)
 	}
-	childWg.Wait()
 }
 
 // AnyIntersecting returns whether or not there are any periods in the collection that intersect the query period.
