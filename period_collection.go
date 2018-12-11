@@ -15,7 +15,6 @@
 package periodic
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -402,32 +401,24 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	}
 
 	var wg sync.WaitGroup
-	intersections := make(chan interface{})
-	resultsChan := make(chan []interface{})
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		results := make([]interface{}, 0, len(pc.nodes))
-		for {
-			select {
-			case intersection := <-intersections:
-				results = append(results, intersection)
-			case <-ctx.Done():
-				resultsChan <- results
-			}
-		}
-	}()
+	intersections := make(chan interface{}, len(pc.nodes))
 
 	wg.Add(1)
 	go pc.intersecting(query, pc.root, intersections, &wg)
 	wg.Wait()
-	cancel()
+	close(intersections)
 
-	return <-resultsChan
+	results := make([]interface{}, 0, len(intersections))
+	for intersection := range intersections {
+		results = append(results, intersection)
+	}
+
+	return results
 }
 
 // intersecting is the internal function that recursively searches the tree and adds all node contents to results
 func (pc *PeriodCollection) intersecting(query Period, root *node, results chan interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	if root.period.Intersects(query) {
 		results <- root.contents
 	}
@@ -439,7 +430,6 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results chan 
 		wg.Add(1)
 		go pc.intersecting(query, root.right, results, wg)
 	}
-	wg.Done()
 }
 
 // AnyIntersecting returns whether or not there are any periods in the collection that intersect the query period.
