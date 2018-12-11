@@ -422,14 +422,16 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results chan 
 	if root.period.Intersects(query) {
 		results <- root.contents
 	}
+	var childWg sync.WaitGroup
 	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
-		wg.Add(1)
-		go pc.intersecting(query, root.left, results, wg)
+		childWg.Add(1)
+		go pc.intersecting(query, root.left, results, &childWg)
 	}
 	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
-		wg.Add(1)
-		go pc.intersecting(query, root.right, results, wg)
+		childWg.Add(1)
+		go pc.intersecting(query, root.right, results, &childWg)
 	}
+	childWg.Wait()
 }
 
 // AnyIntersecting returns whether or not there are any periods in the collection that intersect the query period.
