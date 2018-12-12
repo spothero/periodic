@@ -15,7 +15,6 @@
 package periodic
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -396,50 +395,25 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-
+	results := make([]interface{}, 0, len(pc.nodes))
 	if pc.root.leaf {
-		return make([]interface{}, 0)
+		return results
 	}
-
-	var wg sync.WaitGroup
-	intersections := make(chan interface{})
-	resultsChan := make(chan []interface{})
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		results := make([]interface{}, 0, len(pc.nodes))
-		for {
-			select {
-			case intersection := <-intersections:
-				results = append(results, intersection)
-			case <-ctx.Done():
-				resultsChan <- results
-			}
-		}
-	}()
-
-	wg.Add(1)
-	go pc.intersecting(query, pc.root, intersections, &wg)
-	wg.Wait()
-	cancel()
-
-	return <-resultsChan
+	pc.intersecting(query, pc.root, &results)
+	return results
 }
 
 // intersecting is the internal function that recursively searches the tree and adds all node contents to results
-func (pc *PeriodCollection) intersecting(query Period, root *node, results chan interface{}, wg *sync.WaitGroup) {
+func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
 	if root.period.Intersects(query) {
-		results <- root.contents
+		*results = append(*results, root.contents)
 	}
 	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
-		wg.Add(1)
-		go pc.intersecting(query, root.left, results, wg)
+		pc.intersecting(query, root.left, results)
 	}
 	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
-		wg.Add(1)
-		go pc.intersecting(query, root.right, results, wg)
+		pc.intersecting(query, root.right, results)
 	}
-	wg.Done()
 }
 
 // AnyIntersecting returns whether or not there are any periods in the collection that intersect the query period.
@@ -451,46 +425,22 @@ func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
 	if pc.root.leaf {
 		return false
 	}
-
-	found := make(chan bool, 1)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go pc.anyIntersecting(query, pc.root, found, &wg)
-	wg.Wait()
-
-	// If there's a message on the channel an intersection was found. If not, the tree has been exhaustively searched
-	// and there was no intersection found.
-	select {
-	case result := <-found:
-		return result
-	default:
-		return false
-	}
+	return pc.anyIntersecting(query, pc.root)
 }
 
 // anyIntersecting is the internal function that recursively searches the tree and notifies the caller on the
 // found channel whether or not it has found an intersection.
-func (pc *PeriodCollection) anyIntersecting(query Period, root *node, found chan bool, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (pc *PeriodCollection) anyIntersecting(query Period, root *node) bool {
 	if root.period.Intersects(query) {
-		// found has a buffer of 1, so if the channel is not at capacity this is the first branch to find an
-		// intersection; notify the channel and decrement the wait group counter. Otherwise, just exit since some
-		// other branch has found an intersection and placed a message on the channel.
-		select {
-		case found <- true:
-			return
-		default:
-			return
-		}
+		return true
 	}
 	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
-		wg.Add(1)
-		go pc.anyIntersecting(query, root.left, found, wg)
+		return pc.anyIntersecting(query, root.left)
 	}
 	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
-		wg.Add(1)
-		go pc.anyIntersecting(query, root.right, found, wg)
+		return pc.anyIntersecting(query, root.right)
 	}
+	return false
 }
 
 // ContainsKey returns whether or not a period with a corresponding key exists.

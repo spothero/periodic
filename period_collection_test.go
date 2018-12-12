@@ -1643,7 +1643,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 		expectedOutcome  bool
 	}{
 		{
-			"searching left and right subtree concurrently with intersections works",
+			"searching with intersection in left subtree works",
 			func(t *testing.T) *PeriodCollection {
 				periods := []Period{
 					// becomes left
@@ -1660,6 +1660,22 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				return pc
 			},
 			NewPeriod(time.Date(2018, 12, 28, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 2, 0, 0, 0, 0, time.UTC)),
+			true,
+		}, {
+			"searching with intersection in right subtree works",
+			func(t *testing.T) *PeriodCollection {
+				periods := []Period{
+					NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 15, 0, 0, 0, 0, time.UTC)),
+					NewPeriod(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 30, 0, 0, 0, 0, time.UTC)),
+					NewPeriod(time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 27, 0, 0, 0, 1, time.UTC)),
+				}
+				pc := NewPeriodCollection()
+				for i, p := range periods {
+					require.NoError(t, pc.Insert(p, i, nil))
+				}
+				return pc
+			},
+			NewPeriod(time.Date(2019, 1, 20, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 22, 0, 0, 0, 0, time.UTC)),
 			true,
 		}, {
 			"searching when no intersection in tree works",
