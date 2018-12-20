@@ -1444,67 +1444,63 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 		name             string
 		collection       *PeriodCollection
 		query            Period
-		expectedContents []string
+		expectedContents []interface{}
 	}{
 		{
 			"2018-12-05 12:00 - 2018-12-06 12:00 intersects period a",
 			pc,
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 6, 12, 0, 0, 0, time.UTC)),
-			[]string{"a"},
+			[]interface{}{"a"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-07 12:00 intersects period a and b",
 			pc,
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC)),
-			[]string{"a", "b"},
+			[]interface{}{"a", "b"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-12 12:00 intersects periods a, b, c, d, and e",
 			pc,
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 12, 12, 0, 0, 0, time.UTC)),
-			[]string{"a", "b", "c", "d", "e"},
+			[]interface{}{"a", "b", "c", "d", "e"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-07 00:00 intersects period a",
 			pc,
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
-			[]string{"a"},
+			[]interface{}{"a"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-05 14:00 does not intersect",
 			pc,
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 5, 14, 0, 0, 0, time.UTC)),
-			[]string{},
+			[]interface{}{},
 		}, {
 			"2018-12-20 12:00 - 2018-12-20 14:00 does not intersect",
 			pc,
 			NewPeriod(time.Date(2018, 12, 20, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 20, 14, 0, 0, 0, time.UTC)),
-			[]string{},
+			[]interface{}{},
 		}, {
 			"2018-12-07 12:00 - 2018-12-07 14:00 intersects period b",
 			pc,
 			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 14, 0, 0, 0, time.UTC)),
-			[]string{"b"},
+			[]interface{}{"b"},
 		}, {
 			"2018-12-10 02:00 - 10:00 CST intersects period e",
 			pc,
 			NewPeriod(time.Date(2018, 12, 10, 2, 0, 0, 0, chiTz), time.Date(2018, 12, 10, 10, 0, 0, 0, chiTz)),
-			[]string{"e"},
+			[]interface{}{"e"},
 		}, {
 			"2018-12-09 20:00 - 2018-12-10 10:00 UTC intersects period d and e",
 			pc,
 			NewPeriod(time.Date(2018, 12, 9, 20, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 10, 0, 0, 0, time.UTC)),
-			[]string{"d", "e"},
+			[]interface{}{"d", "e"},
 		}, {
 			"tree with leaf root returns nothing",
 			NewPeriodCollection(),
 			Period{},
-			[]string{},
+			[]interface{}{},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			intersecting := test.collection.Intersecting(test.query)
-			assert.Len(t, intersecting, len(test.expectedContents))
-			for _, c := range test.expectedContents {
-				assert.Contains(t, intersecting, c)
-			}
+			assert.Equal(t, test.expectedContents, test.collection.Intersecting(test.query))
 		})
 	}
 }
