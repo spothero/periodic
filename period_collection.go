@@ -391,7 +391,8 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 }
 
 // Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
-// Period intersection is inclusive on the start time but exclusive on the end time.
+// Period intersection is inclusive on the start time but exclusive on the end time. The results returned by
+// Intersecting are sorted in ascending order by the associated period's start time.
 func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
@@ -403,13 +404,14 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	return results
 }
 
-// intersecting is the internal function that recursively searches the tree and adds all node contents to results
+// intersecting is the internal function that recursively searches the tree and adds all node contents to results.
+// This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
 func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
-	if root.period.Intersects(query) {
-		*results = append(*results, root.contents)
-	}
 	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
 		pc.intersecting(query, root.left, results)
+	}
+	if root.period.Intersects(query) {
+		*results = append(*results, root.contents)
 	}
 	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
 		pc.intersecting(query, root.right, results)
