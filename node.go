@@ -112,10 +112,19 @@ func (n *node) maxEndOfSubtree() time.Time {
 		return n.period.End
 	}
 	if n.left.leaf && !n.right.leaf {
+		if n.right.maxEnd.IsZero() {
+			return n.right.maxEnd
+		}
 		return MaxTime(n.period.End, n.right.maxEnd)
 	}
 	if !n.left.leaf && n.right.leaf {
+		if n.left.maxEnd.IsZero() {
+			return n.left.maxEnd
+		}
 		return MaxTime(n.period.End, n.left.maxEnd)
+	}
+	if n.right.maxEnd.IsZero() || n.left.maxEnd.IsZero() {
+		return time.Time{}
 	}
 	return MaxTime(n.period.End, MaxTime(n.left.maxEnd, n.right.maxEnd))
 }

@@ -112,8 +112,15 @@ func NewContinuousPeriod(start, end time.Duration, startDow, endDow time.Weekday
 }
 
 // Intersects returns true if the other time period intersects the Period upon
-// which the method was called.
+// which the method was called. Note that if the period's end time is the zero value, it is treated as if
+// the time period is unbounded on the end.
 func (p Period) Intersects(other Period) bool {
+	if p.End.IsZero() && !other.End.IsZero() {
+		return p.Start.Before(other.End)
+	}
+	if !p.End.IsZero() && other.End.IsZero() {
+		return other.Start.Before(p.End)
+	}
 	// Calculate max(starts) < min(ends)
 	return MaxTime(p.Start, other.Start).Before(MinTime(p.End, other.End))
 }
