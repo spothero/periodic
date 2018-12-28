@@ -96,7 +96,11 @@ func (pc *PeriodCollection) insertRecursive(period Period, key, contents interfa
 		return *inserted
 	}
 	// augment the tree with the maximum end time of its subtree
-	root.maxEnd = MaxTime(root.maxEnd, period.End)
+	if period.End.IsZero() {
+		root.maxEnd = period.End
+	} else if !root.maxEnd.IsZero() {
+		root.maxEnd = MaxTime(root.maxEnd, period.End)
+	}
 
 	if root.periodToLeft(period) {
 		root.left = pc.insertRecursive(period, key, contents, root.left, inserted)
@@ -384,7 +388,7 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 	if root.period.ContainsTime(time) {
 		return true
 	}
-	if !root.left.leaf && root.left.maxEnd.After(time) {
+	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {
 		return pc.containsTime(root.left, time)
 	}
 	return pc.containsTime(root.right, time)
@@ -407,13 +411,13 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 // intersecting is the internal function that recursively searches the tree and adds all node contents to results.
 // This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
 func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
-	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
+	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
 		pc.intersecting(query, root.left, results)
 	}
 	if root.period.Intersects(query) {
 		*results = append(*results, root.contents)
 	}
-	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
+	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) && root.right.period.Start.Before(query.End) {
 		pc.intersecting(query, root.right, results)
 	}
 }
@@ -436,10 +440,10 @@ func (pc *PeriodCollection) anyIntersecting(query Period, root *node) bool {
 	if root.period.Intersects(query) {
 		return true
 	}
-	if !root.left.leaf && root.left.maxEnd.After(query.Start) {
+	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
 		return pc.anyIntersecting(query, root.left)
 	}
-	if !root.right.leaf && root.right.maxEnd.After(query.Start) && root.right.period.Start.Before(query.End) {
+	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) && root.right.period.Start.Before(query.End) {
 		return pc.anyIntersecting(query, root.right)
 	}
 	return false

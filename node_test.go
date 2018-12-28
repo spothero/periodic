@@ -139,6 +139,24 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 	c.maxEnd = c.period.End
 	d.maxEnd = d.period.End
 	e.maxEnd = e.period.End
+
+	f := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
+	g := newNode(Period{time.Unix(15, 0), time.Time{}}, nil, nil, black)
+	f.left = g
+	g.maxEnd = g.period.End
+
+	h := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
+	i := newNode(Period{time.Unix(25, 0), time.Time{}}, nil, nil, black)
+	h.right = i
+	h.maxEnd = h.period.End
+
+	j := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
+	k := newNode(Period{time.Unix(15, 0), time.Unix(25, 0)}, nil, nil, black)
+	l := newNode(Period{time.Unix(30, 0), time.Time{}}, nil, nil, black)
+	j.left, j.right = k, l
+	k.maxEnd = k.period.End
+	j.maxEnd = j.period.End
+
 	tests := []struct {
 		name     string
 		node     *node
@@ -160,6 +178,18 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 			"node with left and right children returns the max of its period end and its children's max ends",
 			a,
 			d.maxEnd,
+		}, {
+			"node with only left child with period unbounded on the right returns the zero time",
+			f,
+			time.Time{},
+		}, {
+			"node with only right child with period unbounded on the right returns the zero time",
+			h,
+			time.Time{},
+		}, {
+			"node with left and right children where one node's max end is unbounded on the right returns the zero time",
+			j,
+			time.Time{},
 		},
 	}
 	for _, test := range tests {

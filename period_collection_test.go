@@ -219,13 +219,6 @@ func TestPeriodCollection_Insert(t *testing.T) {
 				assert.Equal(t, time.Unix(20, 0), pc.root.left.maxEnd)
 			},
 		}, {
-			/* 25 is black, 15 is red to start, inserting 20 should rebalance the tree with multiple right rotations
-			  25       20
-			 /        /  \
-			15   ->  15  25
-			 \
-			 20
-			*/
 			"inserting a node with the same key as an existing node returns an error",
 			func() *PeriodCollection { return NewPeriodCollection() },
 			[]insertions{
@@ -234,6 +227,34 @@ func TestPeriodCollection_Insert(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Len(t, pc.nodes, 1)
+			},
+		}, {
+			"inserting a node on the left with an unbounded period updates maxEnd correctly",
+			func() *PeriodCollection {
+				pc := NewPeriodCollection()
+				pc.root = newNode(NewPeriod(time.Unix(20, 0), time.Unix(25, 0)), nil, nil, black)
+				return pc
+			},
+			[]insertions{{NewPeriod(time.Unix(10, 0), time.Time{}), 0, false}},
+			func(t *testing.T, pc *PeriodCollection) {
+				assert.Equal(t, time.Unix(20, 0), pc.root.period.Start)
+				assert.Equal(t, time.Unix(10, 0), pc.root.left.period.Start)
+				assert.Equal(t, time.Time{}, pc.root.maxEnd)
+				assert.Equal(t, time.Time{}, pc.root.left.maxEnd)
+			},
+		}, {
+			"inserting a node on the right with an unbounded period updates maxEnd correctly",
+			func() *PeriodCollection {
+				pc := NewPeriodCollection()
+				pc.root = newNode(NewPeriod(time.Unix(20, 0), time.Unix(25, 0)), nil, nil, black)
+				return pc
+			},
+			[]insertions{{NewPeriod(time.Unix(30, 0), time.Time{}), 0, false}},
+			func(t *testing.T, pc *PeriodCollection) {
+				assert.Equal(t, time.Unix(20, 0), pc.root.period.Start)
+				assert.Equal(t, time.Unix(30, 0), pc.root.right.period.Start)
+				assert.Equal(t, time.Time{}, pc.root.maxEnd)
+				assert.Equal(t, time.Time{}, pc.root.right.maxEnd)
 			},
 		},
 	}
@@ -1410,6 +1431,27 @@ func TestPeriodCollection_ContainsTime(t *testing.T) {
 			},
 			time.Date(2018, 12, 6, 15, 0, 0, 0, time.UTC),
 			true,
+		}, {
+			"time in unbounded period in left subtree returns true",
+			[]Period{
+				NewPeriod(time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
+				NewPeriod(time.Date(2018, 12, 5, 0, 0, 0, 0, time.UTC), time.Time{}),
+			},
+			time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC),
+			true,
+		}, {
+			"time in unbounded period in right subtree returns true",
+			[]Period{
+				NewPeriod(time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
+				NewPeriod(time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC), time.Time{}),
+			},
+			time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC),
+			true,
+		}, {
+			"time in unbounded period in root returns true",
+			[]Period{NewPeriod(time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC), time.Time{})},
+			time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC),
+			true,
 		},
 	}
 	for _, test := range tests {
@@ -1435,6 +1477,7 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 		{"c", NewPeriod(time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC))},
 		{"d", NewPeriod(time.Date(2018, 12, 9, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 0, 0, 0, 0, time.UTC))},
 		{"e", NewPeriod(time.Date(2018, 12, 10, 0, 0, 0, 0, chiTz), time.Date(2018, 12, 10, 12, 0, 0, 0, chiTz))},
+		{"f", NewPeriod(time.Date(2018, 12, 27, 0, 0, 0, 0, chiTz), time.Time{})},
 	}
 	pc := NewPeriodCollection()
 	for i, n := range nodes {
@@ -1496,6 +1539,16 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 			NewPeriodCollection(),
 			Period{},
 			[]interface{}{},
+		}, {
+			"2018-12-28 12:00 - 2018-12-28 14:00 intersects period f",
+			pc,
+			NewPeriod(time.Date(2018, 12, 28, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 28, 14, 0, 0, 0, time.UTC)),
+			[]interface{}{"f"},
+		}, {
+			"2018-12-9 12:00 - 2018-12-28 14:00 intersects periods d, e, and f",
+			pc,
+			NewPeriod(time.Date(2018, 12, 9, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 28, 14, 0, 0, 0, time.UTC)),
+			[]interface{}{"d", "e", "f"},
 		},
 	}
 	for _, test := range tests {
@@ -1691,6 +1744,70 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 			"tree with leaf root does not intersect",
 			func(t *testing.T) *PeriodCollection { return NewPeriodCollection() },
 			Period{},
+			false,
+		}, {
+			"searching with unbound intersection in right subtree works",
+			func(t *testing.T) *PeriodCollection {
+				periods := []Period{
+					NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 15, 0, 0, 0, 0, time.UTC)),
+					NewPeriod(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
+					NewPeriod(time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 27, 0, 0, 0, 1, time.UTC)),
+				}
+				pc := NewPeriodCollection()
+				for i, p := range periods {
+					require.NoError(t, pc.Insert(p, i, nil))
+				}
+				return pc
+			},
+			NewPeriod(time.Date(2019, 1, 20, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 22, 0, 0, 0, 0, time.UTC)),
+			true,
+		}, {
+			"searching with unbound intersection in left subtree works",
+			func(t *testing.T) *PeriodCollection {
+				periods := []Period{
+					NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
+					NewPeriod(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 30, 0, 0, 0, 0, time.UTC)),
+					NewPeriod(time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 27, 0, 0, 0, 1, time.UTC)),
+				}
+				pc := NewPeriodCollection()
+				for i, p := range periods {
+					require.NoError(t, pc.Insert(p, i, nil))
+				}
+				return pc
+			},
+			NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 1, 1, 0, 0, 0, time.UTC)),
+			true,
+		}, {
+			"searching with unbound intersection in root works",
+			func(t *testing.T) *PeriodCollection {
+				periods := []Period{
+					NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 15, 0, 0, 0, 0, time.UTC)),
+					NewPeriod(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
+					NewPeriod(time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 27, 0, 0, 0, 1, time.UTC)),
+				}
+				pc := NewPeriodCollection()
+				for i, p := range periods {
+					require.NoError(t, pc.Insert(p, i, nil))
+				}
+				return pc
+			},
+			NewPeriod(time.Date(2020, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC)),
+			true,
+		}, {
+			"searching with before unbound intersection returns false",
+			func(t *testing.T) *PeriodCollection {
+				periods := []Period{
+					NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 1, 15, 0, 0, 0, 0, time.UTC)),
+					NewPeriod(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
+					NewPeriod(time.Date(2018, 12, 27, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 27, 0, 0, 0, 1, time.UTC)),
+				}
+				pc := NewPeriodCollection()
+				for i, p := range periods {
+					require.NoError(t, pc.Insert(p, i, nil))
+				}
+				return pc
+			},
+			NewPeriod(time.Date(2017, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2017, 12, 1, 1, 0, 0, 0, time.UTC)),
 			false,
 		},
 	}

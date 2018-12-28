@@ -24,11 +24,10 @@ import (
 )
 
 func TestPeriod_Intersects(t *testing.T) {
-	testTime1, err := time.Parse(time.RFC3339, "2018-05-25T13:14:15Z")
-	require.NoError(t, err)
-	testTime2, err := time.Parse(time.RFC3339, "2018-05-26T13:14:15Z")
-	require.NoError(t, err)
-	p := Period{Start: testTime1, End: testTime2}
+	p := Period{
+		Start: time.Date(2018, 5, 25, 13, 14, 15, 0, time.UTC),
+		End:   time.Date(2018, 5, 26, 13, 14, 15, 0, time.UTC),
+	}
 	tests := []struct {
 		name           string
 		expectedResult bool
@@ -65,6 +64,26 @@ func TestPeriod_Intersects(t *testing.T) {
 			false,
 			p,
 			NewPeriod(p.End.Add(time.Duration(1)*time.Minute), p.End.Add(time.Duration(2)*time.Minute)),
+		}, {
+			"True when start intersects and other end is unbounded",
+			true,
+			p,
+			NewPeriod(p.Start, time.Time{}),
+		}, {
+			"True when start intersects and end is unbounded",
+			true,
+			NewPeriod(p.Start, time.Time{}),
+			p,
+		}, {
+			"False when end is unbounded and start comes after other end",
+			false,
+			NewPeriod(p.Start, time.Time{}),
+			NewPeriod(time.Unix(0, 0), p.Start.Add(-time.Hour)),
+		}, {
+			"False when other end is unbounded and other start comes after end",
+			false,
+			p,
+			NewPeriod(p.End.Add(time.Second), time.Time{}),
 		},
 	}
 	for _, test := range tests {
