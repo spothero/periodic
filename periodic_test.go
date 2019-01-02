@@ -1168,3 +1168,94 @@ func TestMonStartToSunStart(t *testing.T) {
 		})
 	}
 }
+
+func TestFloatingPeriod_DayApplicable(t *testing.T) {
+	chiTz, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	tests := []struct {
+		name            string
+		t               time.Time
+		fp              FloatingPeriod
+		expectedOutcome bool
+	}{
+		{
+			"time on day covered by floating period returns true",
+			time.Date(2019, 1, 2, 12, 0, 0, 0, time.UTC),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, time.UTC),
+			true,
+		}, {
+			"time on day not covered by floating period returns true",
+			time.Date(2019, 1, 3, 12, 0, 0, 0, time.UTC),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, time.UTC),
+			false,
+		}, {
+			"time when adjusted to the period's time zone is covered by floating period returns true",
+			time.Date(2019, 1, 3, 2, 0, 0, 0, time.UTC),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, chiTz),
+			true,
+		}, {
+			"time when adjusted to the period's time zone is not covered by floating period returns false",
+			time.Date(2019, 1, 3, 2, 0, 0, 0, chiTz),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, time.UTC),
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedOutcome, test.fp.DayApplicable(test.t))
+		})
+	}
+}
+
+func TestContinuousPeriod_DayApplicable(t *testing.T) {
+	chiTz, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	tests := []struct {
+		name            string
+		t               time.Time
+		cp              ContinuousPeriod
+		expectedOutcome bool
+	}{
+		{
+			"time on day covered by continuous period returns true",
+			time.Date(2019, 1, 2, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Thursday, time.UTC),
+			true,
+		}, {
+			"time on day not covered by continuous period returns false",
+			time.Date(2019, 1, 4, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Thursday, time.UTC),
+			false,
+		}, {
+			"time on day after start dow covered by continuous period that wraps around the week returns true",
+			time.Date(2019, 1, 5, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Friday, time.Wednesday, time.UTC),
+			true,
+		}, {
+			"time on day before start dow covered by continuous period that wraps around the week returns true",
+			time.Date(2019, 1, 2, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Friday, time.Wednesday, time.UTC),
+			true,
+		}, {
+			"time on day not covered by continuous period that wraps around the week returns false",
+			time.Date(2019, 1, 3, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Friday, time.Wednesday, time.UTC),
+			false,
+		}, {
+			"time when adjusted to the period's time zone is covered by the continuous period returns true",
+			time.Date(2019, 1, 3, 2, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Wednesday, chiTz),
+			true,
+		}, {
+			"time when adjusted to the period's time zone is not covered by the continuous period returns false",
+			time.Date(2019, 1, 2, 22, 0, 0, 0, chiTz),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Wednesday, time.UTC),
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedOutcome, test.cp.DayApplicable(test.t))
+		})
+	}
+}

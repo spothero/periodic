@@ -59,6 +59,7 @@ type RecurringPeriod interface {
 	FromTime(t time.Time) *Period
 	Contains(period Period) bool
 	ContainsTime(t time.Time) bool
+	DayApplicable(t time.Time) bool
 }
 
 // ApplicableDays is a structure for storing what days of week something is valid for.
@@ -303,7 +304,7 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 // if the start time does not fall within the floating period
 func (fp FloatingPeriod) FromTime(t time.Time) *Period {
 	p := fp.AtDate(t)
-	if !fp.Days.TimeApplicable(p.Start, fp.Location) {
+	if !fp.DayApplicable(p.Start) {
 		return nil
 	}
 	if !p.ContainsTime(t) {
@@ -332,7 +333,7 @@ func (cp ContinuousPeriod) Contains(period Period) bool {
 // Contains determines if the FloatingPeriod contains the specified Period.
 func (fp FloatingPeriod) Contains(period Period) bool {
 	atDate := fp.AtDate(period.Start)
-	return fp.Days.TimeApplicable(atDate.Start, fp.Location) && atDate.Contains(period)
+	return fp.DayApplicable(atDate.Start) && atDate.Contains(period)
 }
 
 // ContainsTime determines if the Period contains the specified time.
@@ -349,7 +350,7 @@ func (p Period) ContainsTime(t time.Time) bool {
 
 // ContainsTime determines if the FloatingPeriod contains the specified time.
 func (fp FloatingPeriod) ContainsTime(t time.Time) bool {
-	if !fp.Days.TimeApplicable(t, fp.Location) {
+	if !fp.DayApplicable(t) {
 		return false
 	}
 	return fp.AtDate(t).ContainsTime(t)
@@ -422,4 +423,18 @@ func (fp FloatingPeriod) ContainsEnd(period Period) bool {
 
 	// Otherwise this is a normal rule, simply check if the rule is within bounds
 	return offsetHours.End.After(period.End)
+}
+
+// DayApplicable returns whether or not the given time falls on a day during which the floating period is applicable.
+func (fp FloatingPeriod) DayApplicable(t time.Time) bool {
+	return fp.Days.TimeApplicable(t, fp.Location)
+}
+
+// DayApplicable returns whether or not the given time falls within a day covered by the continuous period.
+func (cp ContinuousPeriod) DayApplicable(t time.Time) bool {
+	wd := t.In(cp.Location).Weekday()
+	if cp.StartDOW <= cp.EndDOW {
+		return wd >= cp.StartDOW && wd <= cp.EndDOW
+	}
+	return (wd >= cp.StartDOW && wd <= time.Saturday) || (wd >= time.Sunday && wd <= cp.EndDOW)
 }
