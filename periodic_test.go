@@ -951,6 +951,11 @@ func TestContinuousPeriod_AtDate(t *testing.T) {
 			NewPeriod(time.Date(2018, 11, 17, 0, 0, 0, 0, time.UTC), time.Date(2018, 11, 19, 0, 0, 0, 0, time.UTC)),
 			NewContinuousPeriod(0, 0, time.Saturday, time.Monday, time.UTC),
 			time.Date(2018, 11, 17, 1, 0, 0, 0, time.UTC),
+		}, {
+			"CP 0100 Sa - 0000 M UTC is offset correctly from 11/17/18T01:00Z",
+			NewPeriod(time.Date(2018, 11, 17, 1, 0, 0, 0, time.UTC), time.Date(2018, 11, 19, 0, 0, 0, 0, time.UTC)),
+			NewContinuousPeriod(time.Hour, 0, time.Saturday, time.Monday, time.UTC),
+			time.Date(2018, 11, 17, 0, 30, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
