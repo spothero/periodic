@@ -421,6 +421,7 @@ func (fp FloatingPeriod) Intersects(period Period) bool {
 	return false
 }
 
+// Intersects returns whether or not the given period has any overlap with any occurrence of a ContinuousPeriod.
 func (cp ContinuousPeriod) Intersects(period Period) bool {
 	return cp.AtDate(period.Start).Intersects(period)
 }
