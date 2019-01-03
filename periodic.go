@@ -60,6 +60,7 @@ type RecurringPeriod interface {
 	Contains(period Period) bool
 	ContainsTime(t time.Time) bool
 	DayApplicable(t time.Time) bool
+	Intersects(period Period) bool
 }
 
 // ApplicableDays is a structure for storing what days of week something is valid for.
@@ -265,18 +266,44 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 	return offsetDate
 }
 
-// AtDate returns the ContinuousPeriod offset around the given date
+// AtDate returns the ContinuousPeriod offset around the given date. If the date given is contained in a continuous
+// period, the period containing the d is the period that is returned. If the date given is not contained in a
+// continuous period, the period that is returned is the next occurrence of the continuous period.
 func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 	var offsetDate Period
 	var startDay time.Time
-	if cp.StartDOW > d.Weekday() {
-		offset := time.Duration(HoursInDay*(d.Weekday()+(DaysInWeek-cp.StartDOW))) * time.Hour
-		startDay = d.Add(-offset)
+	dLoc := d.In(cp.Location)
+
+	// determine whether or not the given date is within a continuous period
+	var dWithinPeriod bool
+	if cp.StartDOW == cp.EndDOW && cp.End <= cp.Start {
+		dWithinPeriod = true
+	} else {
+		dWithinPeriod = cp.DayApplicable(dLoc) &&
+			dLoc.Sub(time.Date(dLoc.Year(), dLoc.Month(), dLoc.Day(), 0, 0, 0, 0, dLoc.Location())) <= cp.End
+	}
+
+	var offset time.Duration
+	if cp.StartDOW <= dLoc.Weekday() {
+		if dWithinPeriod {
+			// offset to the beginning of the current period
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.StartDOW)) * time.Hour
+		} else {
+			// offset to the beginning of the next period
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-(DaysInWeek+cp.StartDOW))) * time.Hour
+		}
+		startDay = dLoc.Add(-offset)
 		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
 		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	} else {
-		offset := time.Duration(HoursInDay*(d.Weekday()-cp.StartDOW)) * time.Hour
-		startDay = d.Add(-offset)
+		if dWithinPeriod {
+			// offset to the beginning of the current period
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()+(DaysInWeek-cp.StartDOW))) * time.Hour
+		} else {
+			// offset to the beginning of the next period
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.StartDOW)) * time.Hour
+		}
+		startDay = dLoc.Add(-offset)
 		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
 		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	}
@@ -392,6 +419,10 @@ func (fp FloatingPeriod) Intersects(period Period) bool {
 		}
 	}
 	return false
+}
+
+func (cp ContinuousPeriod) Intersects(period Period) bool {
+	return cp.AtDate(period.Start).Intersects(period)
 }
 
 // ContainsStart determines if the FloatingPeriod contains the start of a given period. Note that
