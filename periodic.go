@@ -268,7 +268,8 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 
 // AtDate returns the ContinuousPeriod offset around the given date. If the date given is contained in a continuous
 // period, the period containing the d is the period that is returned. If the date given is not contained in a
-// continuous period, the period that is returned is the next occurrence of the continuous period.
+// continuous period, the period that is returned is the next occurrence of the continuous period. Note that
+// containment is not inclusive on the continuous period end time.
 func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 	var offsetDate Period
 	var startDay time.Time
@@ -276,11 +277,18 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 
 	// determine whether or not the given date is within a continuous period
 	var dWithinPeriod bool
-	if cp.StartDOW == cp.EndDOW && cp.End <= cp.Start {
+	if cp.StartDOW == cp.EndDOW && cp.Start >= cp.End {
+		// If start comes before end on the same day, then the continuous period overlaps itself so any date that
+		// is contained within the period
 		dWithinPeriod = true
 	} else {
-		dWithinPeriod = cp.DayApplicable(dLoc) &&
-			dLoc.Sub(time.Date(dLoc.Year(), dLoc.Month(), dLoc.Day(), 0, 0, 0, 0, dLoc.Location())) <= cp.End
+		dWithinPeriod = cp.DayApplicable(dLoc)
+		if cp.EndDOW == dLoc.Weekday() {
+			// If the date is the same day of week as when the continuous period ends, it is within the period
+			// if it is fewer hours from midnight than the end time of the continuous period.
+			dWithinPeriod = dWithinPeriod &&
+				dLoc.Sub(time.Date(dLoc.Year(), dLoc.Month(), dLoc.Day(), 0, 0, 0, 0, dLoc.Location())) < cp.End
+		}
 	}
 
 	var offset time.Duration
