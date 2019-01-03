@@ -59,6 +59,8 @@ type RecurringPeriod interface {
 	FromTime(t time.Time) *Period
 	Contains(period Period) bool
 	ContainsTime(t time.Time) bool
+	DayApplicable(t time.Time) bool
+	Intersects(period Period) bool
 }
 
 // ApplicableDays is a structure for storing what days of week something is valid for.
@@ -264,18 +266,54 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 	return offsetDate
 }
 
-// AtDate returns the ContinuousPeriod offset around the given date
+// AtDate returns the ContinuousPeriod offset around the given date. If the date given is contained in a continuous
+// period, the period containing the d is the period that is returned. If the date given is not contained in a
+// continuous period, the period that is returned is the next occurrence of the continuous period. Note that
+// containment is inclusive on the continuous period start time but not on the end time.
 func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 	var offsetDate Period
 	var startDay time.Time
-	if cp.StartDOW > d.Weekday() {
-		offset := time.Duration(HoursInDay*(d.Weekday()+(DaysInWeek-cp.StartDOW))) * time.Hour
-		startDay = d.Add(-offset)
+	dLoc := d.In(cp.Location)
+
+	// determine whether we should be looking for the next period or a current one -- findCurrent is true if
+	// the continuous period overlaps itself, the given date occurs on a date not covered by the continuous period,
+	// or the date is after the end time of the continuous period.
+	var findCurrent bool
+	if cp.StartDOW == cp.EndDOW && cp.Start >= cp.End {
+		// If start comes before end on the same day, then the continuous period overlaps itself so any date that
+		// is contained within the period
+		findCurrent = true
+	} else {
+		findCurrent = cp.DayApplicable(dLoc)
+		sinceMidnight := dLoc.Sub(time.Date(dLoc.Year(), dLoc.Month(), dLoc.Day(), 0, 0, 0, 0, dLoc.Location()))
+		if cp.EndDOW == dLoc.Weekday() {
+			// If the date is the same day of week as when the continuous period ends, it is within the period
+			// if it is fewer hours from midnight than the end time of the continuous period.
+			findCurrent = findCurrent && sinceMidnight < cp.End
+		}
+	}
+
+	var offset time.Duration
+	if cp.StartDOW <= dLoc.Weekday() {
+		if findCurrent {
+			// offset to the beginning of the current period or the start of the period on the same day
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.StartDOW)) * time.Hour
+		} else {
+			// offset to the beginning of the next period
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-(DaysInWeek+cp.StartDOW))) * time.Hour
+		}
+		startDay = dLoc.Add(-offset)
 		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
 		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	} else {
-		offset := time.Duration(HoursInDay*(d.Weekday()-cp.StartDOW)) * time.Hour
-		startDay = d.Add(-offset)
+		if findCurrent {
+			// offset to the beginning of the current period or the start of the period on the same day
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()+(DaysInWeek-cp.StartDOW))) * time.Hour
+		} else {
+			// offset to the beginning of the next period
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.StartDOW)) * time.Hour
+		}
+		startDay = dLoc.Add(-offset)
 		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
 		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	}
@@ -303,7 +341,7 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 // if the start time does not fall within the floating period
 func (fp FloatingPeriod) FromTime(t time.Time) *Period {
 	p := fp.AtDate(t)
-	if !fp.Days.TimeApplicable(p.Start, fp.Location) {
+	if !fp.DayApplicable(p.Start) {
 		return nil
 	}
 	if !p.ContainsTime(t) {
@@ -332,7 +370,7 @@ func (cp ContinuousPeriod) Contains(period Period) bool {
 // Contains determines if the FloatingPeriod contains the specified Period.
 func (fp FloatingPeriod) Contains(period Period) bool {
 	atDate := fp.AtDate(period.Start)
-	return fp.Days.TimeApplicable(atDate.Start, fp.Location) && atDate.Contains(period)
+	return fp.DayApplicable(atDate.Start) && atDate.Contains(period)
 }
 
 // ContainsTime determines if the Period contains the specified time.
@@ -349,7 +387,7 @@ func (p Period) ContainsTime(t time.Time) bool {
 
 // ContainsTime determines if the FloatingPeriod contains the specified time.
 func (fp FloatingPeriod) ContainsTime(t time.Time) bool {
-	if !fp.Days.TimeApplicable(t, fp.Location) {
+	if !fp.DayApplicable(t) {
 		return false
 	}
 	return fp.AtDate(t).ContainsTime(t)
@@ -393,6 +431,11 @@ func (fp FloatingPeriod) Intersects(period Period) bool {
 	return false
 }
 
+// Intersects returns whether or not the given period has any overlap with any occurrence of a ContinuousPeriod.
+func (cp ContinuousPeriod) Intersects(period Period) bool {
+	return cp.AtDate(period.Start).Intersects(period)
+}
+
 // ContainsStart determines if the FloatingPeriod contains the start of a given period. Note that
 // this function is a convenience function is equivalent to `fp.containsTime(period.Start)`.
 func (fp FloatingPeriod) ContainsStart(period Period) bool {
@@ -422,4 +465,18 @@ func (fp FloatingPeriod) ContainsEnd(period Period) bool {
 
 	// Otherwise this is a normal rule, simply check if the rule is within bounds
 	return offsetHours.End.After(period.End)
+}
+
+// DayApplicable returns whether or not the given time falls on a day during which the floating period is applicable.
+func (fp FloatingPeriod) DayApplicable(t time.Time) bool {
+	return fp.Days.TimeApplicable(t, fp.Location)
+}
+
+// DayApplicable returns whether or not the given time falls within a day covered by the continuous period.
+func (cp ContinuousPeriod) DayApplicable(t time.Time) bool {
+	wd := t.In(cp.Location).Weekday()
+	if cp.StartDOW <= cp.EndDOW {
+		return wd >= cp.StartDOW && wd <= cp.EndDOW
+	}
+	return (wd >= cp.StartDOW && wd <= time.Saturday) || (wd >= time.Sunday && wd <= cp.EndDOW)
 }

@@ -912,19 +912,14 @@ func TestContinuousPeriod_AtDate(t *testing.T) {
 			NewContinuousPeriod(time.Duration(5)*time.Hour, time.Duration(4)*time.Hour, time.Wednesday, time.Wednesday, time.UTC),
 			time.Date(2018, 10, 3, 13, 13, 13, 13, time.UTC),
 		}, {
-			"CP 0400 W - 050 W is offset correctly from 2018-10-03T13:13:13Z",
-			NewPeriod(time.Date(2018, 10, 3, 4, 0, 0, 0, time.UTC), time.Date(2018, 10, 3, 5, 0, 0, 0, time.UTC)),
+			"CP 0400 W - 0500 W is offset correctly from 2018-10-03T13:13:13Z",
+			NewPeriod(time.Date(2018, 10, 10, 4, 0, 0, 0, time.UTC), time.Date(2018, 10, 10, 5, 0, 0, 0, time.UTC)),
 			NewContinuousPeriod(time.Duration(4)*time.Hour, time.Duration(5)*time.Hour, time.Wednesday, time.Wednesday, time.UTC),
 			time.Date(2018, 10, 3, 13, 13, 13, 13, time.UTC),
 		}, {
 			"CP 0500 TH - 0400 F is offset correctly from 2018-10-03T13:13:13Z",
-			NewPeriod(time.Date(2018, 9, 27, 5, 0, 0, 0, time.UTC), time.Date(2018, 9, 28, 4, 0, 0, 0, time.UTC)),
+			NewPeriod(time.Date(2018, 10, 4, 5, 0, 0, 0, time.UTC), time.Date(2018, 10, 5, 4, 0, 0, 0, time.UTC)),
 			NewContinuousPeriod(time.Duration(5)*time.Hour, time.Duration(4)*time.Hour, time.Thursday, time.Friday, time.UTC),
-			time.Date(2018, 10, 3, 13, 13, 13, 13, time.UTC),
-		}, {
-			"CP 0500 TH - 0400 W is offset correctly from 2018-10-03T13:13:13Z",
-			NewPeriod(time.Date(2018, 9, 27, 5, 0, 0, 0, time.UTC), time.Date(2018, 10, 3, 4, 0, 0, 0, time.UTC)),
-			NewContinuousPeriod(time.Duration(5)*time.Hour, time.Duration(4)*time.Hour, time.Thursday, time.Wednesday, time.UTC),
 			time.Date(2018, 10, 3, 13, 13, 13, 13, time.UTC),
 		}, {
 			"CP M 0000 - M 0000 is offset correctly from 2018-10-23T1:00:00Z",
@@ -936,6 +931,31 @@ func TestContinuousPeriod_AtDate(t *testing.T) {
 			NewPeriod(time.Date(2018, 10, 1, 5, 0, 0, 0, laTz), time.Date(2018, 10, 5, 18, 0, 0, 0, laTz)),
 			NewContinuousPeriod(time.Duration(5)*time.Hour, time.Duration(18)*time.Hour, time.Monday, time.Friday, laTz),
 			time.Date(2018, 10, 3, 13, 13, 13, 13, chiTz),
+		}, {
+			"CP 1200 Sa - 1200 Su is offset correctly from 2019-1-3T12:00Z",
+			NewPeriod(time.Date(2019, 1, 5, 12, 0, 0, 0, time.UTC), time.Date(2019, 1, 6, 12, 0, 0, 0, time.UTC)),
+			NewContinuousPeriod(12*time.Hour, 12*time.Hour, time.Saturday, time.Sunday, time.UTC),
+			time.Date(2019, 1, 3, 12, 0, 0, 0, time.UTC),
+		}, {
+			"CP 1200 Sa - 1200 Su is offset correctly from 2019-1-7T12:00Z",
+			NewPeriod(time.Date(2019, 1, 12, 12, 0, 0, 0, time.UTC), time.Date(2019, 1, 13, 12, 0, 0, 0, time.UTC)),
+			NewContinuousPeriod(12*time.Hour, 12*time.Hour, time.Saturday, time.Sunday, time.UTC),
+			time.Date(2019, 1, 7, 12, 0, 0, 0, time.UTC),
+		}, {
+			"CP 0100 W - 1200 F CST is offset correctly from 2019-01-02T02:00Z",
+			NewPeriod(time.Date(2019, 1, 2, 1, 0, 0, 0, chiTz), time.Date(2019, 1, 4, 12, 0, 0, 0, chiTz)),
+			NewContinuousPeriod(time.Hour, 12*time.Hour, time.Wednesday, time.Friday, chiTz),
+			time.Date(2019, 1, 2, 2, 0, 0, 0, time.UTC),
+		}, {
+			"CP 0000 Sa - 0000 M UTC is offset correctly from 11/17/18T01:00Z",
+			NewPeriod(time.Date(2018, 11, 17, 0, 0, 0, 0, time.UTC), time.Date(2018, 11, 19, 0, 0, 0, 0, time.UTC)),
+			NewContinuousPeriod(0, 0, time.Saturday, time.Monday, time.UTC),
+			time.Date(2018, 11, 17, 1, 0, 0, 0, time.UTC),
+		}, {
+			"CP 0100 Sa - 0000 M UTC is offset correctly from 11/17/18T01:00Z",
+			NewPeriod(time.Date(2018, 11, 17, 1, 0, 0, 0, time.UTC), time.Date(2018, 11, 19, 0, 0, 0, 0, time.UTC)),
+			NewContinuousPeriod(time.Hour, 0, time.Saturday, time.Monday, time.UTC),
+			time.Date(2018, 11, 17, 0, 30, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
@@ -1133,6 +1153,67 @@ func TestPeriod_Equals(t *testing.T) {
 	}
 }
 
+func TestContinuousPeriod_Intersects(t *testing.T) {
+	tests := []struct {
+		name           string
+		expectedResult bool
+		cp             ContinuousPeriod
+		p              Period
+	}{
+		{
+			"period equivalent to cp intersects",
+			true,
+			NewContinuousPeriod(5*time.Hour, 20*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 3, 5, 0, 0, 0, time.UTC), time.Date(2019, 1, 3, 20, 0, 0, 0, time.UTC)),
+		}, {
+			"period that starts before cp and ends at the same time intersects",
+			true,
+			NewContinuousPeriod(5*time.Hour, 20*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 3, 4, 0, 0, 0, time.UTC), time.Date(2019, 1, 3, 20, 0, 0, 0, time.UTC)),
+		}, {
+			"period that ends before cp and starts at the same time intersects",
+			true,
+			NewContinuousPeriod(5*time.Hour, 20*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 3, 5, 0, 0, 0, time.UTC), time.Date(2019, 1, 3, 10, 0, 0, 0, time.UTC)),
+		}, {
+			"period that overlaps cp on the same day intersects",
+			true,
+			NewContinuousPeriod(5*time.Hour, 20*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 3, 4, 0, 0, 0, time.UTC), time.Date(2019, 1, 3, 10, 0, 0, 0, time.UTC)),
+		}, {
+			"multi-day period that overlaps cp on next day intersects",
+			true,
+			NewContinuousPeriod(5*time.Hour, 20*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 2, 4, 0, 0, 0, time.UTC), time.Date(2019, 1, 3, 10, 0, 0, 0, time.UTC)),
+		}, {
+			"period that starts after cp end on the same week but overlaps on the next week intersects",
+			true,
+			NewContinuousPeriod(5*time.Hour, 20*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 4, 4, 0, 0, 0, time.UTC), time.Date(2019, 1, 10, 10, 0, 0, 0, time.UTC)),
+		}, {
+			"cp that starts and ends on the same day with end before start intersects period on different day",
+			true,
+			NewContinuousPeriod(20*time.Hour, 5*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 8, 4, 0, 0, 0, time.UTC), time.Date(2019, 1, 8, 10, 0, 0, 0, time.UTC)),
+		}, {
+			"period that does not overlap cp does not intersect",
+			false,
+			NewContinuousPeriod(5*time.Hour, 20*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 8, 4, 0, 0, 0, time.UTC), time.Date(2019, 1, 8, 10, 0, 0, 0, time.UTC)),
+		}, {
+			"cp that starts and ends on the same day with end before start does not intersect period between end and start",
+			false,
+			NewContinuousPeriod(20*time.Hour, 5*time.Hour, time.Thursday, time.Thursday, time.UTC),
+			NewPeriod(time.Date(2019, 1, 3, 10, 0, 0, 0, time.UTC), time.Date(2019, 1, 3, 18, 0, 0, 0, time.UTC)),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedResult, test.cp.Intersects(test.p))
+		})
+	}
+}
+
 func TestMonStartToSunStart(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -1165,6 +1246,97 @@ func TestMonStartToSunStart(t *testing.T) {
 			if test.err {
 				assert.Error(t, err)
 			}
+		})
+	}
+}
+
+func TestFloatingPeriod_DayApplicable(t *testing.T) {
+	chiTz, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	tests := []struct {
+		name            string
+		t               time.Time
+		fp              FloatingPeriod
+		expectedOutcome bool
+	}{
+		{
+			"time on day covered by floating period returns true",
+			time.Date(2019, 1, 2, 12, 0, 0, 0, time.UTC),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, time.UTC),
+			true,
+		}, {
+			"time on day not covered by floating period returns true",
+			time.Date(2019, 1, 3, 12, 0, 0, 0, time.UTC),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, time.UTC),
+			false,
+		}, {
+			"time when adjusted to the period's time zone is covered by floating period returns true",
+			time.Date(2019, 1, 3, 2, 0, 0, 0, time.UTC),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, chiTz),
+			true,
+		}, {
+			"time when adjusted to the period's time zone is not covered by floating period returns false",
+			time.Date(2019, 1, 3, 2, 0, 0, 0, chiTz),
+			NewFloatingPeriod(0, 0, ApplicableDays{Wednesday: true}, time.UTC),
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedOutcome, test.fp.DayApplicable(test.t))
+		})
+	}
+}
+
+func TestContinuousPeriod_DayApplicable(t *testing.T) {
+	chiTz, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	tests := []struct {
+		name            string
+		t               time.Time
+		cp              ContinuousPeriod
+		expectedOutcome bool
+	}{
+		{
+			"time on day covered by continuous period returns true",
+			time.Date(2019, 1, 2, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Thursday, time.UTC),
+			true,
+		}, {
+			"time on day not covered by continuous period returns false",
+			time.Date(2019, 1, 4, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Thursday, time.UTC),
+			false,
+		}, {
+			"time on day after start dow covered by continuous period that wraps around the week returns true",
+			time.Date(2019, 1, 5, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Friday, time.Wednesday, time.UTC),
+			true,
+		}, {
+			"time on day before start dow covered by continuous period that wraps around the week returns true",
+			time.Date(2019, 1, 2, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Friday, time.Wednesday, time.UTC),
+			true,
+		}, {
+			"time on day not covered by continuous period that wraps around the week returns false",
+			time.Date(2019, 1, 3, 12, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Friday, time.Wednesday, time.UTC),
+			false,
+		}, {
+			"time when adjusted to the period's time zone is covered by the continuous period returns true",
+			time.Date(2019, 1, 3, 2, 0, 0, 0, time.UTC),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Wednesday, chiTz),
+			true,
+		}, {
+			"time when adjusted to the period's time zone is not covered by the continuous period returns false",
+			time.Date(2019, 1, 2, 22, 0, 0, 0, chiTz),
+			NewContinuousPeriod(0, 0, time.Wednesday, time.Wednesday, time.UTC),
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedOutcome, test.cp.DayApplicable(test.t))
 		})
 	}
 }
