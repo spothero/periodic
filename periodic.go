@@ -131,6 +131,9 @@ func (p Period) Intersects(other Period) bool {
 // upon which the method was called. The time period is treated as inclusive on both ends
 // eg [p.Start, p.End]
 func (p Period) Contains(other Period) bool {
+	if p.Start.IsZero() && p.End.IsZero() {
+		return true
+	}
 	s := p.Start.Before(other.Start) || p.Start.Equal(other.Start)
 	e := p.End.After(other.End) || p.End.Equal(other.End)
 	if p.Start.IsZero() && !p.End.IsZero() {

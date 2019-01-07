@@ -155,6 +155,11 @@ func TestPeriod_Contains(t *testing.T) {
 			true,
 			NewPeriod(time.Time{}, testTime2),
 			NewPeriod(testTime1, testTime2.Add(-time.Minute)),
+		}, {
+			"True when period has no start and no end",
+			true,
+			NewPeriod(time.Time{}, time.Time{}),
+			NewPeriod(testTime1, testTime2),
 		},
 	}
 	for _, test := range tests {
