@@ -55,7 +55,7 @@ type ContinuousPeriod struct {
 // RecurringPeriod defines an interface for converting periods that represent abstract points in time
 // into concrete periods
 type RecurringPeriod interface {
-	AtDate(date time.Time) Period
+	AtDate(date time.Time) *Period
 	FromTime(t time.Time) *Period
 	Contains(period Period) bool
 	ContainsTime(t time.Time) bool
@@ -230,6 +230,11 @@ func (ad ApplicableDays) TimeApplicable(t time.Time, location *time.Location) bo
 	}
 }
 
+// AnyApplicable returns whether or not there are any weekdays that are applicable.
+func (ad ApplicableDays) AnyApplicable() bool {
+	return ad.Sunday || ad.Monday || ad.Tuesday || ad.Wednesday || ad.Thursday || ad.Friday || ad.Saturday
+}
+
 // NewApplicableDaysMonStart translates continuous days of week to a struct with bools representing each
 // day of the week. Note that this implementation is dependent on the ordering
 // of days of the week in the applicableDaysOfWeek struct. Monday is 0, Sunday is 6.
@@ -254,26 +259,54 @@ func (fp FloatingPeriod) Contiguous() bool {
 	return fp.Start == fp.End
 }
 
-// AtDate returns the Floating Period offset relative to midnight of the date provided
-func (fp FloatingPeriod) AtDate(date time.Time) Period {
+// AtDate returns the FloatingPeriod offset around the given date. If the date given is contained in a floating
+// period, the period containing the date is the period that is returned. If the date given is not contained in a
+// floating period, the period that is returned is the next occurrence of the floating period. Note that
+// containment is inclusive on the continuous period start time but not on the end time.
+func (fp FloatingPeriod) AtDate(date time.Time) *Period {
+	if !fp.Days.AnyApplicable() {
+		return nil
+	}
 	dateInLoc := date.In(fp.Location)
 	midnight := time.Date(dateInLoc.Year(), dateInLoc.Month(), dateInLoc.Day(), 0, 0, 0, 0, fp.Location)
-	offsetDate := Period{Start: midnight.Add(fp.Start), End: midnight.Add(fp.End)}
+	durationSinceMidnight := dateInLoc.Sub(midnight)
+	var scanForNextRecurrence bool
 	if fp.Start >= fp.End {
-		if dateInLoc.After(offsetDate.Start) || dateInLoc.Equal(offsetDate.Start) {
-			offsetDate.End = offsetDate.End.AddDate(0, 0, 1)
-		} else {
-			offsetDate.Start = offsetDate.Start.AddDate(0, 0, -1)
+		// The floating period spills over into the next day: if the given date is closer to midnight than the
+		// end of the floating period, we actually want to check if the floating period was applicable on
+		// the previous day. If it was not, we need to scan for the next recurrence of the floating period.
+		if durationSinceMidnight < fp.End {
+			midnight = midnight.AddDate(0, 0, -1)
+		}
+		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location)
+	} else {
+		// The start and end of the floating period occurs on the same day, so we only need to scan for the
+		// next recurrence if the floating period is not applicable on the current day or if the time since midnight
+		// of the given date comes after the end of the floating period.
+		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location) || durationSinceMidnight >= fp.End
+	}
+
+	// Scan until a day on which the floating period is applicable is found
+	if scanForNextRecurrence {
+		for i := 0; i < DaysInWeek; i++ {
+			midnight = midnight.AddDate(0, 0, 1)
+			if fp.Days.TimeApplicable(midnight, fp.Location) {
+				break
+			}
 		}
 	}
-	return offsetDate
+
+	if fp.Start >= fp.End {
+		return &Period{Start: midnight.Add(fp.Start), End: midnight.AddDate(0, 0, 1).Add(fp.End)}
+	}
+	return &Period{Start: midnight.Add(fp.Start), End: midnight.Add(fp.End)}
 }
 
 // AtDate returns the ContinuousPeriod offset around the given date. If the date given is contained in a continuous
-// period, the period containing the d is the period that is returned. If the date given is not contained in a
+// period, the period containing d is the period that is returned. If the date given is not contained in a
 // continuous period, the period that is returned is the next occurrence of the continuous period. Note that
 // containment is inclusive on the continuous period start time but not on the end time.
-func (cp ContinuousPeriod) AtDate(d time.Time) Period {
+func (cp ContinuousPeriod) AtDate(d time.Time) *Period {
 	var offsetDate Period
 	var startDay time.Time
 	dLoc := d.In(cp.Location)
@@ -337,14 +370,14 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
 		offsetDate.End = offsetDate.End.Add(cp.End)
 	}
-	return offsetDate
+	return &offsetDate
 }
 
 // FromTime returns a period that extends from a given start time to the end of the floating period, or nil
 // if the start time does not fall within the floating period
 func (fp FloatingPeriod) FromTime(t time.Time) *Period {
 	p := fp.AtDate(t)
-	if !fp.DayApplicable(p.Start) {
+	if p == nil {
 		return nil
 	}
 	if !p.ContainsTime(t) {
@@ -401,37 +434,9 @@ func (cp ContinuousPeriod) ContainsTime(t time.Time) bool {
 	return cp.AtDate(t).ContainsTime(t)
 }
 
-// Intersects determines if the FloatingPeriod intersects the specified Period. Because the starts
-// and ends time may not align with our calculated applied floating period, the function scans from
-// period day start - 1 to period day + 1 to ensure that all possible overlaps are accounted for.
-// If the start and ends times are equal, the method simply checks that for any given period, at
-// least one day in that period occurs during this floating period.
+// Intersects determines if the FloatingPeriod intersects the specified Period.
 func (fp FloatingPeriod) Intersects(period Period) bool {
-	if fp.Start == fp.End {
-		currDate := period.Start
-		for !currDate.After(period.End) {
-			if fp.Days.TimeApplicable(currDate, fp.Location) {
-				return true
-			}
-			currDate = currDate.AddDate(0, 0, 1)
-		}
-	} else {
-		currDate := fp.AtDate(period.Start.AddDate(0, 0, -1))
-		dayAfterEnd := period.End.AddDate(0, 0, 1)
-		// If start equals ends, then we only need to check if the date is applicable, not the times.
-		completePeriod := fp.Start == fp.End
-		for {
-			if fp.Days.TimeApplicable(currDate.Start, fp.Location) && (completePeriod || currDate.Intersects(period)) {
-				return true
-			}
-			currDate.Start = currDate.Start.AddDate(0, 0, 1)
-			currDate.End = currDate.End.AddDate(0, 0, 1)
-			if currDate.End.After(dayAfterEnd) {
-				break
-			}
-		}
-	}
-	return false
+	return fp.AtDate(period.Start).Intersects(period)
 }
 
 // Intersects returns whether or not the given period has any overlap with any occurrence of a ContinuousPeriod.

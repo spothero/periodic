@@ -512,32 +512,82 @@ func TestFloatingPeriod_AtDate(t *testing.T) {
 	require.NoError(t, err)
 	tests := []struct {
 		name           string
-		expectedResult Period
+		expectedResult *Period
 		fp             FloatingPeriod
 		d              time.Time
 	}{
 		{
 			"Floating Period 05:00-21:00 at 11/13/2018 01:23:45 returns 11/13/2018 05:00-21:00",
-			NewPeriod(time.Date(2018, 11, 13, 5, 0, 0, 0, time.UTC), time.Date(2018, 11, 13, 21, 00, 0, 0, time.UTC)),
-			NewFloatingPeriod(time.Duration(5)*time.Hour, time.Duration(21)*time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC),
+			&Period{Start: time.Date(2018, 11, 13, 5, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 13, 21, 00, 0, 0, time.UTC)},
+			NewFloatingPeriod(5*time.Hour, 21*time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC),
 			time.Date(2018, 11, 13, 1, 23, 45, 59, time.UTC),
 		}, {
 			`Floating Period 21:00-05:00 at 11/13/2018 01:23:45 returns
 			11/12/2018 21:00 - 11/13/2018 05:00`,
-			NewPeriod(time.Date(2018, 11, 12, 21, 0, 0, 0, time.UTC), time.Date(2018, 11, 13, 5, 00, 0, 0, time.UTC)),
-			NewFloatingPeriod(time.Duration(21)*time.Hour, time.Duration(5)*time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC),
+			&Period{Start: time.Date(2018, 11, 12, 21, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 13, 5, 00, 0, 0, time.UTC)},
+			NewFloatingPeriod(21*time.Hour, 5*time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC),
 			time.Date(2018, 11, 13, 1, 23, 45, 59, time.UTC),
 		}, {
-			`Floating Period 21:00-05:00 at 11/13/2018 22:00:00 returns
-			11/13/2018 21:00 - 11/14/2018 05:00`,
-			NewPeriod(time.Date(2018, 11, 13, 21, 0, 0, 0, time.UTC), time.Date(2018, 11, 14, 5, 00, 0, 0, time.UTC)),
-			NewFloatingPeriod(time.Duration(21)*time.Hour, time.Duration(5)*time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC),
+			`Floating Period 21:00-05:00 at 11/13/2018 22:00:00 returns 11/13/2018 21:00 - 11/14/2018 05:00`,
+			&Period{Start: time.Date(2018, 11, 13, 21, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 14, 5, 00, 0, 0, time.UTC)},
+			NewFloatingPeriod(21*time.Hour, 5*time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC),
 			time.Date(2018, 11, 13, 22, 0, 0, 0, time.UTC),
 		}, {
 			"Floating Period 15:00-0:00 returns 11/13/2018 15:00 - 11/14/2018 00:00 CST when requested with 11/14/2018 00:30 UTC",
-			NewPeriod(time.Date(2018, 11, 13, 15, 0, 0, 0, chiTz), time.Date(2018, 11, 14, 0, 0, 0, 0, chiTz)),
-			NewFloatingPeriod(time.Duration(15)*time.Hour, 0, NewApplicableDaysMonStart(0, 6), chiTz),
+			&Period{Start: time.Date(2018, 11, 13, 15, 0, 0, 0, chiTz), End: time.Date(2018, 11, 14, 0, 0, 0, 0, chiTz)},
+			NewFloatingPeriod(15*time.Hour, 0, NewApplicableDaysMonStart(0, 6), chiTz),
 			time.Date(2018, 11, 14, 0, 30, 0, 0, time.UTC),
+		}, {
+			"Floating period 09:00-12:00 MWF, request anytime on Tuesday returns period on Wednesday",
+			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(9*time.Hour, 12*time.Hour, ApplicableDays{Monday: true, Wednesday: true, Friday: true}, time.UTC),
+			time.Date(2019, 1, 8, 8, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period 09:00-12:00 MWF, request Monday 13:00 returns period on Wednesday",
+			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(9*time.Hour, 12*time.Hour, ApplicableDays{Monday: true, Wednesday: true, Friday: true}, time.UTC),
+			time.Date(2019, 1, 7, 13, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period 09:00-12:00 MWF, request Monday 12:00 returns period on Wednesday",
+			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(9*time.Hour, 12*time.Hour, ApplicableDays{Monday: true, Wednesday: true, Friday: true}, time.UTC),
+			time.Date(2019, 1, 7, 12, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period 09:00-12:00 M, request Monday 13:00 returns period on next Monday",
+			&Period{Start: time.Date(2019, 1, 14, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 14, 12, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(9*time.Hour, 12*time.Hour, ApplicableDays{Monday: true}, time.UTC),
+			time.Date(2019, 1, 7, 13, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period with no applicable days returns nil",
+			nil,
+			NewFloatingPeriod(0, 0, ApplicableDays{}, time.UTC),
+			time.Date(2019, 1, 7, 13, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period 20:00-02:00 M, request 1:00 Tuesday returns 20:00 M - 02:00 T",
+			&Period{Start: time.Date(2019, 1, 7, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(20*time.Hour, 2*time.Hour, ApplicableDays{Monday: true}, time.UTC),
+			time.Date(2019, 1, 8, 1, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period 20:00-02:00 MTW, request 1:00 Tuesday returns 20:00 M - 02:00 T",
+			&Period{Start: time.Date(2019, 1, 7, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(20*time.Hour, 2*time.Hour, ApplicableDays{Monday: true, Tuesday: true, Wednesday: true}, time.UTC),
+			time.Date(2019, 1, 8, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			"Floating period 20:00-02:00 MTW, request 05:00 Tuesday returns 20:00 T - 02:00 W",
+			&Period{Start: time.Date(2019, 1, 8, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 2, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(20*time.Hour, 2*time.Hour, ApplicableDays{Monday: true, Tuesday: true, Wednesday: true}, time.UTC),
+			time.Date(2019, 1, 8, 5, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period 20:00-02:00 MT, request 02:00 Tuesday returns 20:00 T - 02:00 W",
+			&Period{Start: time.Date(2019, 1, 8, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 2, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(20*time.Hour, 2*time.Hour, ApplicableDays{Monday: true, Tuesday: true}, time.UTC),
+			time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period 09:00 - 09:00 MW, request 12:00 T returns 09:00 W - 09:00 Th",
+			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 10, 9, 0, 0, 0, time.UTC)},
+			NewFloatingPeriod(9*time.Hour, 9*time.Hour, ApplicableDays{Monday: true, Wednesday: true}, time.UTC),
+			time.Date(2019, 1, 8, 12, 0, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
@@ -965,7 +1015,7 @@ func TestContinuousPeriod_AtDate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expectedResult, test.cp.AtDate(test.d))
+			assert.Equal(t, &test.expectedResult, test.cp.AtDate(test.d))
 		})
 	}
 }
@@ -1028,6 +1078,53 @@ func TestApplicableDays_TimeApplicable(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.outcome, test.ad.TimeApplicable(test.t, test.l))
+		})
+	}
+}
+
+func TestApplicableDays_AnyApplicable(t *testing.T) {
+	tests := []struct {
+		name     string
+		ad       ApplicableDays
+		expected bool
+	}{
+		{
+			"Monday applicable returns true",
+			ApplicableDays{Monday: true},
+			true,
+		}, {
+			"Tuesday applicable returns true",
+			ApplicableDays{Tuesday: true},
+			true,
+		}, {
+			"Wednesday applicable returns true",
+			ApplicableDays{Wednesday: true},
+			true,
+		}, {
+			"Thursday applicable returns true",
+			ApplicableDays{Thursday: true},
+			true,
+		}, {
+			"Friday applicable returns true",
+			ApplicableDays{Friday: true},
+			true,
+		}, {
+			"Saturday applicable returns true",
+			ApplicableDays{Saturday: true},
+			true,
+		}, {
+			"Sunday applicable returns true",
+			ApplicableDays{Sunday: true},
+			true,
+		}, {
+			"No applicable days returns false",
+			ApplicableDays{},
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, test.ad.AnyApplicable())
 		})
 	}
 }
@@ -1115,6 +1212,11 @@ func TestFloatingPeriod_FromTime(t *testing.T) {
 			NewFloatingPeriod(
 				time.Duration(17)*time.Hour, time.Duration(3)*time.Hour, ApplicableDays{Thursday: true}, time.UTC),
 			&Period{Start: time.Date(2018, 11, 16, 0, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 16, 3, 0, 0, 0, time.UTC)},
+		}, {
+			"floating period with no applicable days returns nil",
+			time.Time{},
+			NewFloatingPeriod(0, 0, ApplicableDays{}, time.UTC),
+			nil,
 		},
 	}
 	for _, test := range tests {
