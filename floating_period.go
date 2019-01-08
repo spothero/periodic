@@ -110,9 +110,6 @@ func (fp FloatingPeriod) Contains(period Period) bool {
 
 // ContainsTime determines if the FloatingPeriod contains the specified time.
 func (fp FloatingPeriod) ContainsTime(t time.Time) bool {
-	if !fp.DayApplicable(t) {
-		return false
-	}
 	return fp.AtDate(t).ContainsTime(t)
 }
 
@@ -122,14 +119,15 @@ func (fp FloatingPeriod) Intersects(period Period) bool {
 }
 
 // ContainsStart determines if the FloatingPeriod contains the start of a given period. Note that
-// this function is a convenience function is equivalent to `fp.containsTime(period.Start)`.
+// this function is a convenience function equivalent to `fp.ContainsTime(period.Start)`.
 func (fp FloatingPeriod) ContainsStart(period Period) bool {
 	return fp.ContainsTime(period.Start)
 }
 
-// ContainsEnd determines if the FloatingPeriod contains the end of a given period
+// ContainsEnd determines if the FloatingPeriod contains the end of a given period. Note that this function is a
+// convenience function  equivalent to `fp.ContainsTime(period.End)`.
 func (fp FloatingPeriod) ContainsEnd(period Period) bool {
-	return fp.AtDate(period.Start).ContainsTime(period.End)
+	return fp.ContainsTime(period.End)
 }
 
 // DayApplicable returns whether or not the given time falls on a day during which the floating period is applicable.

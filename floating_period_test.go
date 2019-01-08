@@ -443,6 +443,11 @@ func TestFloatingPeriod_ContainsEnd(t *testing.T) {
 			false,
 			FloatingPeriod{start: 5 * time.Hour, end: 21 * time.Hour, days: ApplicableDays{Tuesday: true}, location: time.UTC},
 			NewPeriod(time.Date(2018, 1, 1, 12, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 17, 0, 0, 0, time.UTC)),
+		}, {
+			"Floating Period 05:00-21:00 MWF only, request for M 12:00 - F 20:00 is contained",
+			true,
+			FloatingPeriod{start: 5 * time.Hour, end: 21 * time.Hour, days: ApplicableDays{Monday: true, Wednesday: true, Friday: true}, location: time.UTC},
+			NewPeriod(time.Date(2019, 1, 7, 12, 0, 0, 0, time.UTC), time.Date(2019, 1, 11, 20, 0, 0, 0, time.UTC)),
 		},
 	}
 	for _, test := range tests {
