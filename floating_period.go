@@ -22,10 +22,14 @@ import (
 // FloatingPeriod defines a period which defines a bound set of time which is applicable
 // generically to any given date in a given location, but is not associated with any particular date.
 type FloatingPeriod struct {
-	start    time.Duration
-	end      time.Duration
-	days     ApplicableDays
-	location *time.Location
+	// Time since midnight on the that the period begins
+	Start time.Duration
+	// Time since midnight on the that the period ends
+	End time.Duration
+	// Days on which the period applies
+	Days ApplicableDays
+	// Timezone where the period is located
+	Location *time.Location
 }
 
 // NewFloatingPeriod constructs a new floating period
@@ -38,17 +42,17 @@ func NewFloatingPeriod(start, end time.Duration, days ApplicableDays, location *
 		l = time.UTC
 	}
 	return FloatingPeriod{
-		start:    start,
-		end:      end,
-		days:     days,
-		location: l,
+		Start:    start,
+		End:      end,
+		Days:     days,
+		Location: l,
 	}, nil
 }
 
 // Contiguous returns true if starts time is equal to end time. It does not consider applicable
 // days.
 func (fp FloatingPeriod) Contiguous() bool {
-	return fp.start == fp.end
+	return fp.Start == fp.End
 }
 
 // AtDate returns the FloatingPeriod offset around the given date. If the date given is contained in a floating
@@ -56,39 +60,39 @@ func (fp FloatingPeriod) Contiguous() bool {
 // floating period, the period that is returned is the next occurrence of the floating period. Note that
 // containment is inclusive on the continuous period start time but not on the end time.
 func (fp FloatingPeriod) AtDate(date time.Time) Period {
-	dateInLoc := date.In(fp.location)
-	midnight := time.Date(dateInLoc.Year(), dateInLoc.Month(), dateInLoc.Day(), 0, 0, 0, 0, fp.location)
+	dateInLoc := date.In(fp.Location)
+	midnight := time.Date(dateInLoc.Year(), dateInLoc.Month(), dateInLoc.Day(), 0, 0, 0, 0, fp.Location)
 	durationSinceMidnight := dateInLoc.Sub(midnight)
 	var scanForNextRecurrence bool
-	if fp.start >= fp.end {
+	if fp.Start >= fp.End {
 		// The floating period spills over into the next day: if the given date is closer to midnight than the
 		// end of the floating period, we actually want to check if the floating period was applicable on
 		// the previous day. If it was not, we need to scan for the next recurrence of the floating period.
-		if durationSinceMidnight < fp.end {
+		if durationSinceMidnight < fp.End {
 			midnight = midnight.AddDate(0, 0, -1)
 		}
-		scanForNextRecurrence = !fp.days.TimeApplicable(midnight, fp.location)
+		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location)
 	} else {
 		// The start and end of the floating period occurs on the same day, so we only need to scan for the
 		// next recurrence if the floating period is not applicable on the current day or if the time since midnight
 		// of the given date comes after the end of the floating period.
-		scanForNextRecurrence = !fp.days.TimeApplicable(midnight, fp.location) || durationSinceMidnight >= fp.end
+		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location) || durationSinceMidnight >= fp.End
 	}
 
 	// Scan until a day on which the floating period is applicable is found
 	if scanForNextRecurrence {
 		for i := 0; i < DaysInWeek; i++ {
 			midnight = midnight.AddDate(0, 0, 1)
-			if fp.days.TimeApplicable(midnight, fp.location) {
+			if fp.Days.TimeApplicable(midnight, fp.Location) {
 				break
 			}
 		}
 	}
 
-	if fp.start >= fp.end {
-		return Period{Start: midnight.Add(fp.start), End: midnight.AddDate(0, 0, 1).Add(fp.end)}
+	if fp.Start >= fp.End {
+		return Period{Start: midnight.Add(fp.Start), End: midnight.AddDate(0, 0, 1).Add(fp.End)}
 	}
-	return Period{Start: midnight.Add(fp.start), End: midnight.Add(fp.end)}
+	return Period{Start: midnight.Add(fp.Start), End: midnight.Add(fp.End)}
 }
 
 // FromTime returns a period that extends from a given start time to the end of the floating period, or nil
@@ -132,5 +136,5 @@ func (fp FloatingPeriod) ContainsEnd(period Period) bool {
 
 // DayApplicable returns whether or not the given time falls on a day during which the floating period is applicable.
 func (fp FloatingPeriod) DayApplicable(t time.Time) bool {
-	return fp.days.TimeApplicable(t, fp.location)
+	return fp.Days.TimeApplicable(t, fp.Location)
 }

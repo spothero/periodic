@@ -21,11 +21,16 @@ import (
 // ContinuousPeriod defines a period which defines a block of time in a given location, bounded by a week, which may
 // span multiple days.
 type ContinuousPeriod struct {
-	start    time.Duration
-	end      time.Duration
-	startDOW time.Weekday
-	endDOW   time.Weekday
-	location *time.Location
+	// Time since midnight on the start day of week that the period begins
+	Start time.Duration
+	// Time since midnight on the end day of week that the period ends
+	End time.Duration
+	// Day of the week when the period begins
+	StartDOW time.Weekday
+	// Day of the week when the period ends
+	EndDOW time.Weekday
+	// Timezone where the period is located
+	Location *time.Location
 }
 
 // NewContinuousPeriod constructs a new continuous period
@@ -35,11 +40,11 @@ func NewContinuousPeriod(start, end time.Duration, startDow, endDow time.Weekday
 		l = time.UTC
 	}
 	return ContinuousPeriod{
-		start:    start,
-		end:      end,
-		startDOW: startDow,
-		endDOW:   endDow,
-		location: l,
+		Start:    start,
+		End:      end,
+		StartDOW: startDow,
+		EndDOW:   endDow,
+		Location: l,
 	}
 }
 
@@ -50,66 +55,66 @@ func NewContinuousPeriod(start, end time.Duration, startDow, endDow time.Weekday
 func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 	var offsetDate Period
 	var startDay time.Time
-	dLoc := d.In(cp.location)
+	dLoc := d.In(cp.Location)
 
 	// determine whether we should be looking for the next period or a current one -- findCurrent is true if
 	// the continuous period overlaps itself, the given date occurs on a date not covered by the continuous period,
 	// or the date is after the end time of the continuous period.
 	var findCurrent bool
-	if cp.startDOW == cp.endDOW && cp.start >= cp.end {
+	if cp.StartDOW == cp.EndDOW && cp.Start >= cp.End {
 		// If start comes before end on the same day, then the continuous period overlaps itself so any date that
 		// is contained within the period
 		findCurrent = true
 	} else {
 		findCurrent = cp.DayApplicable(dLoc)
 		sinceMidnight := dLoc.Sub(time.Date(dLoc.Year(), dLoc.Month(), dLoc.Day(), 0, 0, 0, 0, dLoc.Location()))
-		if cp.endDOW == dLoc.Weekday() {
+		if cp.EndDOW == dLoc.Weekday() {
 			// If the date is the same day of week as when the continuous period ends, it is within the period
 			// if it is fewer hours from midnight than the end time of the continuous period.
-			findCurrent = findCurrent && sinceMidnight < cp.end
+			findCurrent = findCurrent && sinceMidnight < cp.End
 		}
 	}
 
 	var offset time.Duration
-	if cp.startDOW <= dLoc.Weekday() {
+	if cp.StartDOW <= dLoc.Weekday() {
 		if findCurrent {
 			// offset to the beginning of the current period or the start of the period on the same day
-			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.startDOW)) * time.Hour
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.StartDOW)) * time.Hour
 		} else {
 			// offset to the beginning of the next period
-			offset = time.Duration(HoursInDay*(dLoc.Weekday()-(DaysInWeek+cp.startDOW))) * time.Hour
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-(DaysInWeek+cp.StartDOW))) * time.Hour
 		}
 		startDay = dLoc.Add(-offset)
-		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.location)
-		offsetDate.Start = offsetDate.Start.Add(cp.start)
+		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
+		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	} else {
 		if findCurrent {
 			// offset to the beginning of the current period or the start of the period on the same day
-			offset = time.Duration(HoursInDay*(dLoc.Weekday()+(DaysInWeek-cp.startDOW))) * time.Hour
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()+(DaysInWeek-cp.StartDOW))) * time.Hour
 		} else {
 			// offset to the beginning of the next period
-			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.startDOW)) * time.Hour
+			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.StartDOW)) * time.Hour
 		}
 		startDay = dLoc.Add(-offset)
-		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.location)
-		offsetDate.Start = offsetDate.Start.Add(cp.start)
+		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
+		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	}
 
-	if cp.endDOW > cp.startDOW {
-		endDay := startDay.Add(time.Duration(HoursInDay*(cp.endDOW-cp.startDOW)) * time.Hour)
-		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.location)
-		offsetDate.End = offsetDate.End.Add(cp.end)
-	} else if cp.endDOW < cp.startDOW {
-		endDay := startDay.Add(time.Duration(HoursInDay*((DaysInWeek-cp.startDOW)+cp.endDOW)) * time.Hour)
-		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.location)
-		offsetDate.End = offsetDate.End.Add(cp.end)
+	if cp.EndDOW > cp.StartDOW {
+		endDay := startDay.Add(time.Duration(HoursInDay*(cp.EndDOW-cp.StartDOW)) * time.Hour)
+		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
+		offsetDate.End = offsetDate.End.Add(cp.End)
+	} else if cp.EndDOW < cp.StartDOW {
+		endDay := startDay.Add(time.Duration(HoursInDay*((DaysInWeek-cp.StartDOW)+cp.EndDOW)) * time.Hour)
+		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
+		offsetDate.End = offsetDate.End.Add(cp.End)
 	} else {
 		endDay := startDay
-		if cp.start >= cp.end {
+		if cp.Start >= cp.End {
 			endDay = endDay.Add(time.Duration(DaysInWeek*HoursInDay) * time.Hour)
 		}
-		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.location)
-		offsetDate.End = offsetDate.End.Add(cp.end)
+		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
+		offsetDate.End = offsetDate.End.Add(cp.End)
 	}
 	return offsetDate
 }
@@ -142,9 +147,9 @@ func (cp ContinuousPeriod) Intersects(period Period) bool {
 
 // DayApplicable returns whether or not the given time falls within a day covered by the continuous period.
 func (cp ContinuousPeriod) DayApplicable(t time.Time) bool {
-	wd := t.In(cp.location).Weekday()
-	if cp.startDOW <= cp.endDOW {
-		return wd >= cp.startDOW && wd <= cp.endDOW
+	wd := t.In(cp.Location).Weekday()
+	if cp.StartDOW <= cp.EndDOW {
+		return wd >= cp.StartDOW && wd <= cp.EndDOW
 	}
-	return (wd >= cp.startDOW && wd <= time.Saturday) || (wd >= time.Sunday && wd <= cp.endDOW)
+	return (wd >= cp.StartDOW && wd <= time.Saturday) || (wd >= time.Sunday && wd <= cp.EndDOW)
 }
