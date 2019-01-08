@@ -523,75 +523,75 @@ func TestFloatingPeriod_AtDate(t *testing.T) {
 	require.NoError(t, err)
 	tests := []struct {
 		name           string
-		expectedResult *Period
+		expectedResult Period
 		fp             FloatingPeriod
 		d              time.Time
 	}{
 		{
 			"Floating Period 05:00-21:00 at 11/13/2018 01:23:45 returns 11/13/2018 05:00-21:00",
-			&Period{Start: time.Date(2018, 11, 13, 5, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 13, 21, 00, 0, 0, time.UTC)},
+			Period{Start: time.Date(2018, 11, 13, 5, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 13, 21, 00, 0, 0, time.UTC)},
 			FloatingPeriod{5 * time.Hour, 21 * time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC},
 			time.Date(2018, 11, 13, 1, 23, 45, 59, time.UTC),
 		}, {
 			`Floating Period 21:00-05:00 at 11/13/2018 01:23:45 returns
 			11/12/2018 21:00 - 11/13/2018 05:00`,
-			&Period{Start: time.Date(2018, 11, 12, 21, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 13, 5, 00, 0, 0, time.UTC)},
+			Period{Start: time.Date(2018, 11, 12, 21, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 13, 5, 00, 0, 0, time.UTC)},
 			FloatingPeriod{start: 21 * time.Hour, end: 5 * time.Hour, days: NewApplicableDaysMonStart(0, 6), location: time.UTC},
 			time.Date(2018, 11, 13, 1, 23, 45, 59, time.UTC),
 		}, {
 			`Floating Period 21:00-05:00 at 11/13/2018 22:00:00 returns 11/13/2018 21:00 - 11/14/2018 05:00`,
-			&Period{Start: time.Date(2018, 11, 13, 21, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 14, 5, 00, 0, 0, time.UTC)},
+			Period{Start: time.Date(2018, 11, 13, 21, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 14, 5, 00, 0, 0, time.UTC)},
 			FloatingPeriod{start: 21 * time.Hour, end: 5 * time.Hour, days: NewApplicableDaysMonStart(0, 6), location: time.UTC},
 			time.Date(2018, 11, 13, 22, 0, 0, 0, time.UTC),
 		}, {
 			"Floating Period 15:00-0:00 returns 11/13/2018 15:00 - 11/14/2018 00:00 CST when requested with 11/14/2018 00:30 UTC",
-			&Period{Start: time.Date(2018, 11, 13, 15, 0, 0, 0, chiTz), End: time.Date(2018, 11, 14, 0, 0, 0, 0, chiTz)},
+			Period{Start: time.Date(2018, 11, 13, 15, 0, 0, 0, chiTz), End: time.Date(2018, 11, 14, 0, 0, 0, 0, chiTz)},
 			FloatingPeriod{start: 15 * time.Hour, end: 0, days: NewApplicableDaysMonStart(0, 6), location: chiTz},
 			time.Date(2018, 11, 14, 0, 30, 0, 0, time.UTC),
 		}, {
 			"Floating period 09:00-12:00 MWF, request anytime on Tuesday returns period on Wednesday",
-			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 9 * time.Hour, end: 12 * time.Hour, days: ApplicableDays{Monday: true, Wednesday: true, Friday: true}, location: time.UTC},
 			time.Date(2019, 1, 8, 8, 0, 0, 0, time.UTC),
 		}, {
 			"Floating period 09:00-12:00 MWF, request Monday 13:00 returns period on Wednesday",
-			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 9 * time.Hour, end: 12 * time.Hour, days: ApplicableDays{Monday: true, Wednesday: true, Friday: true}, location: time.UTC},
 			time.Date(2019, 1, 7, 13, 0, 0, 0, time.UTC),
 		}, {
 			"Floating period 09:00-12:00 MWF, request Monday 12:00 returns period on Wednesday",
-			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 9 * time.Hour, end: 12 * time.Hour, days: ApplicableDays{Monday: true, Wednesday: true, Friday: true}, location: time.UTC},
 			time.Date(2019, 1, 7, 12, 0, 0, 0, time.UTC),
 		}, {
 			"Floating period 09:00-12:00 M, request Monday 13:00 returns period on next Monday",
-			&Period{Start: time.Date(2019, 1, 14, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 14, 12, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 14, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 14, 12, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 9 * time.Hour, end: 12 * time.Hour, days: ApplicableDays{Monday: true}, location: time.UTC},
 			time.Date(2019, 1, 7, 13, 0, 0, 0, time.UTC),
 		}, {
 			"Floating period 20:00-02:00 M, request 1:00 Tuesday returns 20:00 M - 02:00 T",
-			&Period{Start: time.Date(2019, 1, 7, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 7, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 20 * time.Hour, end: 2 * time.Hour, days: ApplicableDays{Monday: true}, location: time.UTC},
 			time.Date(2019, 1, 8, 1, 0, 0, 0, time.UTC),
 		}, {
 			"Floating period 20:00-02:00 MTW, request 1:00 Tuesday returns 20:00 M - 02:00 T",
-			&Period{Start: time.Date(2019, 1, 7, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 7, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 20 * time.Hour, end: 2 * time.Hour, days: ApplicableDays{Monday: true, Tuesday: true, Wednesday: true}, location: time.UTC},
 			time.Date(2019, 1, 8, 1, 0, 0, 0, time.UTC),
 		},
 		{
 			"Floating period 20:00-02:00 MTW, request 05:00 Tuesday returns 20:00 T - 02:00 W",
-			&Period{Start: time.Date(2019, 1, 8, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 2, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 8, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 2, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 20 * time.Hour, end: 2 * time.Hour, days: ApplicableDays{Monday: true, Tuesday: true, Wednesday: true}, location: time.UTC},
 			time.Date(2019, 1, 8, 5, 0, 0, 0, time.UTC),
 		}, {
 			"Floating period 20:00-02:00 MT, request 02:00 Tuesday returns 20:00 T - 02:00 W",
-			&Period{Start: time.Date(2019, 1, 8, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 2, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 8, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 2, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 20 * time.Hour, end: 2 * time.Hour, days: ApplicableDays{Monday: true, Tuesday: true}, location: time.UTC},
 			time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC),
 		}, {
 			"Floating period 09:00 - 09:00 MW, request 12:00 T returns 09:00 W - 09:00 Th",
-			&Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 10, 9, 0, 0, 0, time.UTC)},
+			Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 10, 9, 0, 0, 0, time.UTC)},
 			FloatingPeriod{start: 9 * time.Hour, end: 9 * time.Hour, days: ApplicableDays{Monday: true, Wednesday: true}, location: time.UTC},
 			time.Date(2019, 1, 8, 12, 0, 0, 0, time.UTC),
 		},
@@ -1023,7 +1023,7 @@ func TestContinuousPeriod_AtDate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, &test.expectedResult, test.cp.AtDate(test.d))
+			assert.Equal(t, test.expectedResult, test.cp.AtDate(test.d))
 		})
 	}
 }

@@ -55,7 +55,7 @@ type ContinuousPeriod struct {
 // RecurringPeriod defines an interface for converting periods that represent abstract points in time
 // into concrete periods
 type RecurringPeriod interface {
-	AtDate(date time.Time) *Period
+	AtDate(date time.Time) Period
 	FromTime(t time.Time) *Period
 	Contains(period Period) bool
 	ContainsTime(t time.Time) bool
@@ -266,10 +266,7 @@ func (fp FloatingPeriod) Contiguous() bool {
 // period, the period containing the date is the period that is returned. If the date given is not contained in a
 // floating period, the period that is returned is the next occurrence of the floating period. Note that
 // containment is inclusive on the continuous period start time but not on the end time.
-func (fp FloatingPeriod) AtDate(date time.Time) *Period {
-	if !fp.days.AnyApplicable() {
-		return nil
-	}
+func (fp FloatingPeriod) AtDate(date time.Time) Period {
 	dateInLoc := date.In(fp.location)
 	midnight := time.Date(dateInLoc.Year(), dateInLoc.Month(), dateInLoc.Day(), 0, 0, 0, 0, fp.location)
 	durationSinceMidnight := dateInLoc.Sub(midnight)
@@ -300,16 +297,16 @@ func (fp FloatingPeriod) AtDate(date time.Time) *Period {
 	}
 
 	if fp.start >= fp.end {
-		return &Period{Start: midnight.Add(fp.start), End: midnight.AddDate(0, 0, 1).Add(fp.end)}
+		return Period{Start: midnight.Add(fp.start), End: midnight.AddDate(0, 0, 1).Add(fp.end)}
 	}
-	return &Period{Start: midnight.Add(fp.start), End: midnight.Add(fp.end)}
+	return Period{Start: midnight.Add(fp.start), End: midnight.Add(fp.end)}
 }
 
 // AtDate returns the ContinuousPeriod offset around the given date. If the date given is contained in a continuous
 // period, the period containing d is the period that is returned. If the date given is not contained in a
 // continuous period, the period that is returned is the next occurrence of the continuous period. Note that
 // containment is inclusive on the continuous period start time but not on the end time.
-func (cp ContinuousPeriod) AtDate(d time.Time) *Period {
+func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 	var offsetDate Period
 	var startDay time.Time
 	dLoc := d.In(cp.location)
@@ -373,16 +370,13 @@ func (cp ContinuousPeriod) AtDate(d time.Time) *Period {
 		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.location)
 		offsetDate.End = offsetDate.End.Add(cp.end)
 	}
-	return &offsetDate
+	return offsetDate
 }
 
 // FromTime returns a period that extends from a given start time to the end of the floating period, or nil
 // if the start time does not fall within the floating period
 func (fp FloatingPeriod) FromTime(t time.Time) *Period {
 	p := fp.AtDate(t)
-	if p == nil {
-		return nil
-	}
 	if !p.ContainsTime(t) {
 		return nil
 	}
