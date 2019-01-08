@@ -323,11 +323,11 @@ func TestNewContinuousPeriod(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cp := NewContinuousPeriod(test.s, test.e, test.sDow, test.eDow, test.loc)
-			assert.Equal(t, test.s, cp.start)
-			assert.Equal(t, test.e, cp.end)
-			assert.Equal(t, test.sDow, cp.startDOW)
-			assert.Equal(t, test.eDow, cp.endDOW)
-			assert.Equal(t, test.expectedLoc, cp.location)
+			assert.Equal(t, test.s, cp.Start)
+			assert.Equal(t, test.e, cp.End)
+			assert.Equal(t, test.sDow, cp.StartDOW)
+			assert.Equal(t, test.eDow, cp.EndDOW)
+			assert.Equal(t, test.expectedLoc, cp.Location)
 		})
 	}
 }
