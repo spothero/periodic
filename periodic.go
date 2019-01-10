@@ -136,20 +136,32 @@ func (p Period) Equals(other Period) bool {
 	return p.Start.Equal(other.Start) && p.End.Equal(other.End)
 }
 
-// MaxTime returns the maximum of two timestamps, or the first timestamp if equal
-func MaxTime(t1 time.Time, t2 time.Time) time.Time {
-	if t2.After(t1) {
-		return t2
+// MaxTime returns the maximum of the provided times
+func MaxTime(times ...time.Time) time.Time {
+	if len(times) == 0 {
+		return time.Time{}
 	}
-	return t1
+	maxTime := times[0]
+	for _, t := range times[1:] {
+		if t.After(maxTime) {
+			maxTime = t
+		}
+	}
+	return maxTime
 }
 
-// MinTime returns the minimum of two timestamps, or the first timestamp if equal
-func MinTime(t1 time.Time, t2 time.Time) time.Time {
-	if t2.Before(t1) {
-		return t2
+// MinTime returns the minimum of the provided times
+func MinTime(times ...time.Time) time.Time {
+	if len(times) == 0 {
+		return time.Time{}
 	}
-	return t1
+	minTime := times[0]
+	for _, t := range times[1:] {
+		if t.Before(minTime) {
+			minTime = t
+		}
+	}
+	return minTime
 }
 
 // MonStartToSunStart normalizes Monday Start Day of Week (Mon=0, Sun=6) to Sunday Start of Week (Sun=0, Sat=6)
