@@ -351,29 +351,29 @@ func TestMaxTime(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult time.Time
-		t1             time.Time
-		t2             time.Time
+		times          []time.Time
 	}{
 		{
 			"T1 is returned when T1 and T2 are identical",
 			t1,
-			t1,
-			t2,
+			[]time.Time{t1, t2},
 		}, {
 			"T1 is returned when T1 is greater than T2",
 			t1,
-			t1,
-			t2.Add(-time.Duration(1) * time.Minute),
+			[]time.Time{t1, t2.Add(-time.Duration(1) * time.Minute)},
 		}, {
 			"T2 is returned when T2 is greater than T1",
 			t2,
-			t1.Add(-time.Duration(1) * time.Minute),
-			t2,
+			[]time.Time{t1.Add(-time.Duration(1) * time.Minute), t2},
+		}, {
+			"zero time is returned when no times are provided",
+			time.Time{},
+			[]time.Time{},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expectedResult, MaxTime(t1, t2))
+			assert.Equal(t, test.expectedResult, MaxTime(test.times...))
 		})
 	}
 }
@@ -386,29 +386,29 @@ func TestMinTime(t *testing.T) {
 	tests := []struct {
 		name           string
 		expectedResult time.Time
-		t1             time.Time
-		t2             time.Time
+		times          []time.Time
 	}{
 		{
 			"T1 is returned when T1 and T2 are identical",
 			t1,
-			t1,
-			t2,
+			[]time.Time{t1, t2},
 		}, {
 			"T2 is returned when T1 is greater than T2",
 			t1,
-			t1.Add(time.Duration(1) * time.Minute),
-			t2,
+			[]time.Time{t1.Add(time.Duration(1) * time.Minute), t2},
 		}, {
 			"T1 is returned when T2 is greater than T1",
 			t2,
-			t1,
-			t2.Add(time.Duration(1) * time.Minute),
+			[]time.Time{t1, t2.Add(time.Duration(1) * time.Minute)},
+		}, {
+			"zero time is returned when no times are provided",
+			time.Time{},
+			[]time.Time{},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expectedResult, MinTime(t1, t2))
+			assert.Equal(t, test.expectedResult, MinTime(test.times...))
 		})
 	}
 }
