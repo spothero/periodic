@@ -26,7 +26,7 @@ clean:
 	rm -rf vendor
 
 # Linting
-LINTERS=gofmt golint gosimple vet misspell ineffassign deadcode
+LINTERS=gofmt golint staticcheck vet misspell ineffassign deadcode
 METALINT=gometalinter --tests --disable-all --vendor --deadline=5m -e "zz_.*\.go" ./...
 
 lint:
