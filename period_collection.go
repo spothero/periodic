@@ -76,40 +76,43 @@ func (pc *PeriodCollection) Insert(period Period, key, contents interface{}) err
 // insert is the internal function that adds a new red node to the tree. Note this function does not lock the mutex,
 // that must be done by the caller.
 func (pc *PeriodCollection) insert(period Period, key, contents interface{}) {
-	var inserted *node
+	inserted := newNode(period, key, contents, red)
+	pc.nodes[key] = inserted
 	if pc.root == nil || pc.root.leaf {
-		inserted = newNode(period, key, contents, black)
-		inserted.maxEnd = period.End
+		inserted.color = black
 		pc.root = inserted
 	} else {
-		pc.insertRecursive(period, key, contents, pc.root, &inserted)
+		pc.insertRecursive(pc.root, inserted)
 		pc.insertRepair(inserted)
 	}
-	pc.nodes[inserted.key] = inserted
 }
 
 // insertRecursive recursively adds new red node containing a period and ID into the tree. The inserted node is stored in the
 // the inserted parameter.
-func (pc *PeriodCollection) insertRecursive(period Period, key, contents interface{}, root *node, inserted **node) *node {
-	if root.leaf {
-		*inserted = newNode(period, key, contents, red)
-		return *inserted
-	}
+func (pc *PeriodCollection) insertRecursive(root, inserted *node) {
 	// augment the tree with the maximum end time of its subtree
-	if period.End.IsZero() {
-		root.maxEnd = period.End
+	if inserted.period.End.IsZero() {
+		root.maxEnd = inserted.period.End
 	} else if !root.maxEnd.IsZero() {
-		root.maxEnd = MaxTime(root.maxEnd, period.End)
+		root.maxEnd = MaxTime(root.maxEnd, inserted.period.End)
 	}
 
-	if root.periodToLeft(period) {
-		root.left = pc.insertRecursive(period, key, contents, root.left, inserted)
-		root.left.parent = root
+	if root.periodToLeft(inserted.period) {
+		if root.left.leaf {
+			inserted.parent = root
+			root.left = inserted
+			return
+		}
+		pc.insertRecursive(root.left, inserted)
+
 	} else {
-		root.right = pc.insertRecursive(period, key, contents, root.right, inserted)
-		root.right.parent = root
+		if root.right.leaf {
+			inserted.parent = root
+			root.right = inserted
+			return
+		}
+		pc.insertRecursive(root.right, inserted)
 	}
-	return root
 }
 
 // insertRepair rebalances the tree to maintain the red-black property after an insertion
@@ -216,7 +219,6 @@ func (pc *PeriodCollection) Delete(key interface{}) error {
 		return fmt.Errorf("could not delete node with key %v: key does not exist", key)
 	}
 	pc.delete(node)
-	delete(pc.nodes, key)
 	return nil
 }
 
@@ -260,6 +262,7 @@ func (pc *PeriodCollection) delete(n *node) {
 	if y.color == black {
 		pc.deleteRepair(z)
 	}
+	delete(pc.nodes, n.key)
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
