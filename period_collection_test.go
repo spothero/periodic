@@ -587,6 +587,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(25, 0), pc.root.left.left.maxEnd)
 				assert.Equal(t, time.Unix(40, 0), pc.root.right.maxEnd)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 4)
 			},
 		}, {
 			/* P, S, N are black, L, R are red; after deleting N, L is red with the rest black
@@ -626,6 +627,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(60, 0), pc.root.right.maxEnd)
 				assert.Equal(t, time.Unix(60, 0), pc.root.right.right.maxEnd)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 4)
 			},
 		}, {
 			/* P, N, L, R are black, S is red; after deleting N, P is red with the rest black
@@ -663,6 +665,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, black, pc.root.right.left.color)
 				assert.True(t, pc.root.right.right.leaf)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 4)
 			},
 		}, {
 			/* P, N, L, R are black, S is red; after deleting N, P is red with the rest black
@@ -700,9 +703,9 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, black, pc.root.right.left.color)
 				assert.True(t, pc.root.left.left.leaf)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 4)
 			},
-		},
-		{
+		}, {
 			/* L is red, P, N, S are black to start; after deleting N, all nodes are black
 			    P         P
 			   / \       / \
@@ -737,9 +740,9 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(10, 0), pc.root.right.maxEnd)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Equal(t, pc.nodes[4], pc.root.left)
+				assert.Len(t, pc.nodes, 3)
 			},
-		},
-		{
+		}, {
 			/* R is red, P, N, S are black to start; after deleting N, all nodes are black
 			  P         P
 			 / \       / \
@@ -773,6 +776,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(25, 0), pc.root.right.maxEnd)
 				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 3)
 			},
 		}, {
 			/* R is red, P, N, S are black to start; after deleting N, all nodes are black
@@ -808,6 +812,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(10, 0), pc.root.right.maxEnd)
 				assert.Equal(t, time.Unix(45, 0), pc.root.left.maxEnd)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 3)
 			},
 		}, {
 			/* R is red, P, N, S are black to start; after deleting N, all nodes are black
@@ -843,6 +848,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(25, 0), pc.root.right.maxEnd)
 				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 3)
 			},
 		}, {
 			"deleting black node with leaf sibling and red parent makes parent black",
@@ -858,6 +864,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.True(t, pc.root.left.leaf)
 				assert.Equal(t, black, pc.root.color)
 				assert.NotContains(t, pc.nodes, 2)
+				assert.Len(t, pc.nodes, 1)
 			},
 		}, {
 			/* contrived example starting with an unbalanced tree:
@@ -896,8 +903,10 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, black, pc.root.right.left.color)
 				assert.True(t, pc.root.left.leaf)
 				assert.NotContains(t, pc.nodes, 3)
+				assert.Len(t, pc.nodes, 4)
 			},
-		}, {
+		},
+		{
 			/* RR is red, the rest are black; after deleting N, all are black
 			  N          RL
 			 / \        / \
@@ -931,8 +940,10 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
 				assert.Equal(t, time.Unix(30, 0), pc.root.right.maxEnd)
 				assert.NotContains(t, pc.nodes, 1)
+				assert.Len(t, pc.nodes, 3)
 			},
-		}, {
+		},
+		{
 			/* RR is red, the rest are black; after deleting N, all are black
 			  N          RL
 			 / \        / \
@@ -966,6 +977,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
 				assert.Equal(t, time.Unix(30, 0), pc.root.right.maxEnd)
 				assert.NotContains(t, pc.nodes, 1)
+				assert.Len(t, pc.nodes, 3)
 			},
 		}, {
 			"deleting the only child of the root updates max end correctly",
@@ -985,6 +997,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.True(t, pc.root.right.leaf)
 				assert.Equal(t, time.Unix(20, 0), pc.root.maxEnd)
 				assert.NotContains(t, pc.nodes, 2)
+				assert.Len(t, pc.nodes, 1)
 			},
 		},
 	}

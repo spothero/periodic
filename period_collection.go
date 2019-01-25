@@ -227,12 +227,14 @@ func (pc *PeriodCollection) delete(n *node) {
 	var y *node
 	var z *node
 
+	delete(pc.nodes, n.key)
 	if n.left.leaf || n.right.leaf {
 		// n has 0 or 1 children so pc can be deleted
 		y = n
 	} else {
 		// n is an internal node, delete its successor and swap the contents of its successor into n
 		y = n.successor()
+		pc.nodes[y.key] = n
 	}
 	if !y.left.leaf {
 		z = y.left
@@ -252,9 +254,7 @@ func (pc *PeriodCollection) delete(n *node) {
 	} else {
 		pc.root = z
 	}
-	delete(pc.nodes, n.key)
 	n.period, n.key, n.contents = y.period, y.key, y.contents
-	pc.nodes[n.key] = n
 
 	if z.parent != nil {
 		z.parent.maxEnd = z.parent.maxEndOfSubtree()
@@ -264,7 +264,6 @@ func (pc *PeriodCollection) delete(n *node) {
 	if y.color == black {
 		pc.deleteRepair(z)
 	}
-	delete(pc.nodes, y.key)
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
