@@ -941,6 +941,9 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(30, 0), pc.root.right.maxEnd)
 				assert.NotContains(t, pc.nodes, 1)
 				assert.Len(t, pc.nodes, 3)
+				assert.Equal(t, pc.nodes[4], pc.root)
+				assert.Equal(t, pc.nodes[2], pc.root.left)
+				assert.Equal(t, pc.nodes[3], pc.root.right)
 			},
 		},
 		{
@@ -978,6 +981,9 @@ func TestPeriodCollection_delete(t *testing.T) {
 				assert.Equal(t, time.Unix(30, 0), pc.root.right.maxEnd)
 				assert.NotContains(t, pc.nodes, 1)
 				assert.Len(t, pc.nodes, 3)
+				assert.Equal(t, pc.nodes[4], pc.root)
+				assert.Equal(t, pc.nodes[2], pc.root.left)
+				assert.Equal(t, pc.nodes[3], pc.root.right)
 			},
 		}, {
 			"deleting the only child of the root updates max end correctly",
