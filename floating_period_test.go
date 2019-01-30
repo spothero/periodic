@@ -575,3 +575,9 @@ func TestNewFloatingPeriod(t *testing.T) {
 		})
 	}
 }
+
+func TestFloatingPeriodConstructionError_Error(t *testing.T) {
+	f := FloatingPeriodConstructionError("e")
+	assert.Error(t, f)
+	assert.Equal(t, "e", f.Error())
+}
