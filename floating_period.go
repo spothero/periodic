@@ -15,7 +15,6 @@
 package periodic
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -32,10 +31,18 @@ type FloatingPeriod struct {
 	Location *time.Location
 }
 
+// FloatingPeriodConstructionError is the error type returned if there is a problem constructing a FloatingPeriod
+type FloatingPeriodConstructionError string
+
+// Error implements the error interface for FloatingPeriodConstructionError
+func (f FloatingPeriodConstructionError) Error() string {
+	return string(f)
+}
+
 // NewFloatingPeriod constructs a new floating period
 func NewFloatingPeriod(start, end time.Duration, days ApplicableDays, location *time.Location) (FloatingPeriod, error) {
 	if !days.AnyApplicable() {
-		return FloatingPeriod{}, fmt.Errorf("floating period must have at least 1 applicable day")
+		return FloatingPeriod{}, FloatingPeriodConstructionError("floating period must have at least 1 applicable day")
 	}
 	l := location
 	if location == nil {
