@@ -421,7 +421,7 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]in
 	if root.period.Intersects(query) {
 		*results = append(*results, root.contents)
 	}
-	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) && root.right.period.Start.Before(query.End) {
+	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) {
 		pc.intersecting(query, root.right, results)
 	}
 }
@@ -447,7 +447,7 @@ func (pc *PeriodCollection) anyIntersecting(query Period, root *node) bool {
 	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
 		return pc.anyIntersecting(query, root.left)
 	}
-	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) && root.right.period.Start.Before(query.End) {
+	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) {
 		return pc.anyIntersecting(query, root.right)
 	}
 	return false

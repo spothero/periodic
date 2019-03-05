@@ -1557,75 +1557,126 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 	}
 	tests := []struct {
 		name             string
-		collection       *PeriodCollection
+		setupCollection  func() *PeriodCollection
 		query            Period
 		expectedContents []interface{}
 	}{
 		{
 			"2018-12-05 12:00 - 2018-12-06 12:00 intersects period a",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 6, 12, 0, 0, 0, time.UTC)),
 			[]interface{}{"a"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-07 12:00 intersects period a and b",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC)),
 			[]interface{}{"a", "b"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-12 12:00 intersects periods a, b, c, d, and e",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 12, 12, 0, 0, 0, time.UTC)),
 			[]interface{}{"a", "b", "c", "d", "e"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-07 00:00 intersects period a",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
 			[]interface{}{"a"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-05 14:00 does not intersect",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 5, 14, 0, 0, 0, time.UTC)),
 			[]interface{}{},
 		}, {
 			"2018-12-20 12:00 - 2018-12-20 14:00 does not intersect",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 20, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 20, 14, 0, 0, 0, time.UTC)),
 			[]interface{}{},
 		}, {
 			"2018-12-07 12:00 - 2018-12-07 14:00 intersects period b",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 14, 0, 0, 0, time.UTC)),
 			[]interface{}{"b"},
 		}, {
 			"2018-12-10 02:00 - 10:00 CST intersects period e",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 10, 2, 0, 0, 0, chiTz), time.Date(2018, 12, 10, 10, 0, 0, 0, chiTz)),
 			[]interface{}{"e"},
 		}, {
 			"2018-12-09 20:00 - 2018-12-10 10:00 UTC intersects period d and e",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 9, 20, 0, 0, 0, time.UTC), time.Date(2018, 12, 10, 10, 0, 0, 0, time.UTC)),
 			[]interface{}{"d", "e"},
 		}, {
 			"tree with leaf root returns nothing",
-			NewPeriodCollection(),
+			func() *PeriodCollection {
+				return NewPeriodCollection()
+			},
 			Period{},
 			[]interface{}{},
 		}, {
 			"2018-12-28 12:00 - 2018-12-28 14:00 intersects period f",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 28, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 28, 14, 0, 0, 0, time.UTC)),
 			[]interface{}{"f"},
 		}, {
 			"2018-12-9 12:00 - 2018-12-28 14:00 intersects periods d, e, and f",
-			pc,
+			func() *PeriodCollection {
+				return pc
+			},
 			NewPeriod(time.Date(2018, 12, 9, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 28, 14, 0, 0, 0, time.UTC)),
 			[]interface{}{"d", "e", "f"},
+		},
+		/* Intersection set includes RL
+		  N
+		 / \
+		L   R
+		   /
+		  RL
+		*/
+		{
+			"2018-12-9 12:00 - 2018-12-28 14:00 intersects periods including in order successor of root",
+			func() *PeriodCollection {
+				n := newNode(Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 4, 0, 0, 0, 0, time.UTC)}, 1, "n", black)
+				l := newNode(Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 2, 0, 0, 0, 0, time.UTC)}, 2, "l", black)
+				r := newNode(Period{time.Date(2019, 12, 5, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 6, 0, 0, 0, 0, time.UTC)}, 3, "r", black)
+				rl := newNode(Period{time.Date(2019, 12, 3, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 4, 0, 0, 0, 0, time.UTC)}, 4, "rl", red)
+				n.left, n.right = l, r
+				r.left, r.parent, r.maxEnd = rl, n, rl.period.End
+				l.parent = n
+				rl.parent = r
+				return &PeriodCollection{
+					root:  n,
+					nodes: map[interface{}]*node{1: n, 2: l, 3: r, 4: rl},
+				}
+			},
+			NewPeriod(time.Date(2019, 12, 3, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 4, 0, 0, 0, 0, time.UTC)),
+			[]interface{}{"n", "rl"},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expectedContents, test.collection.Intersecting(test.query))
+			collection := test.setupCollection()
+			assert.Equal(t, test.expectedContents, collection.Intersecting(test.query))
 		})
 	}
 }
@@ -1881,6 +1932,32 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 			},
 			NewPeriod(time.Date(2017, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2017, 12, 1, 1, 0, 0, 0, time.UTC)),
 			false,
+		},
+		{
+			/* RL is only node that intersects query period
+			  N
+			 / \
+			L   R
+			   /
+			  RL
+			*/
+			"searching with in order successor of root as only intersection",
+			func(t *testing.T) *PeriodCollection {
+				n := newNode(Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 2, 0, 0, 0, 0, time.UTC)}, 1, "n", black)
+				l := newNode(Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 2, 0, 0, 0, 0, time.UTC)}, 2, "l", black)
+				r := newNode(Period{time.Date(2019, 12, 5, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 6, 0, 0, 0, 0, time.UTC)}, 3, "r", black)
+				rl := newNode(Period{time.Date(2019, 12, 3, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 4, 0, 0, 0, 0, time.UTC)}, 4, "rl", red)
+				n.left, n.right = l, r
+				r.left, r.parent, r.maxEnd = rl, n, rl.period.End
+				l.parent = n
+				rl.parent = r
+				return &PeriodCollection{
+					root:  n,
+					nodes: map[interface{}]*node{1: n, 2: l, 3: r, 4: rl},
+				}
+			},
+			NewPeriod(time.Date(2019, 12, 3, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 4, 0, 0, 0, 0, time.UTC)),
+			true,
 		},
 	}
 	for _, test := range tests {
