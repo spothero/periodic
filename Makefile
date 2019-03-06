@@ -17,7 +17,7 @@ vendor:
 	dep ensure -v -vendor-only
 
 test:
-	go test -race -v ./... -coverprofile=coverage.txt -covermode=atomic
+	go test -race -v github.com/spothero/periodic -coverprofile=coverage.txt -covermode=atomic
 
 coverage: test
 	go tool cover -html=coverage.txt
