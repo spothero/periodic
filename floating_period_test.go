@@ -69,7 +69,7 @@ func TestFloatingPeriod_AtDate(t *testing.T) {
 		{
 			"Floating Period 05:00-21:00 at 11/13/2018 01:23:45 returns 11/13/2018 05:00-21:00",
 			Period{Start: time.Date(2018, 11, 13, 5, 0, 0, 0, time.UTC), End: time.Date(2018, 11, 13, 21, 00, 0, 0, time.UTC)},
-			FloatingPeriod{5 * time.Hour, 21 * time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC},
+			FloatingPeriod{5 * time.Hour, 21 * time.Hour, NewApplicableDaysMonStart(0, 6), time.UTC, false},
 			time.Date(2018, 11, 13, 1, 23, 45, 59, time.UTC),
 		}, {
 			`Floating Period 21:00-05:00 at 11/13/2018 01:23:45 returns
@@ -351,6 +351,16 @@ func TestFloatingPeriod_ContainsTime(t *testing.T) {
 			false,
 			FloatingPeriod{Start: 21 * time.Hour, End: 5 * time.Hour, Days: NewApplicableDaysMonStart(1, 6), Location: time.UTC},
 			time.Date(2018, 1, 1, 20, 59, 0, 0, time.UTC),
+		}, {
+			"Floating Period 05:00-21:00, request for 21:00 is not contained",
+			false,
+			FloatingPeriod{Start: 5 * time.Hour, End: 21 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC},
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+		}, {
+			"End inclusive floating Period 05:00-21:00, request for 21:00 is contained",
+			true,
+			FloatingPeriod{Start: 5 * time.Hour, End: 21 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC, EndInclusive: true},
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
@@ -448,6 +458,11 @@ func TestFloatingPeriod_ContainsEnd(t *testing.T) {
 			true,
 			FloatingPeriod{Start: 5 * time.Hour, End: 21 * time.Hour, Days: ApplicableDays{Monday: true, Wednesday: true, Friday: true}, Location: time.UTC},
 			NewPeriod(time.Date(2019, 1, 7, 12, 0, 0, 0, time.UTC), time.Date(2019, 1, 11, 20, 0, 0, 0, time.UTC)),
+		}, {
+			"End inclusive floating Period 05:00-21:00, request for 05:00-21:00 is contained",
+			true,
+			FloatingPeriod{Start: 5 * time.Hour, End: 21 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC, EndInclusive: true},
+			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 00, 0, 0, time.UTC)),
 		},
 	}
 	for _, test := range tests {
@@ -562,7 +577,7 @@ func TestNewFloatingPeriod(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fp, err := NewFloatingPeriod(test.s, test.e, test.d, test.loc)
+			fp, err := NewFloatingPeriod(test.s, test.e, test.d, test.loc, false)
 			if test.expectError {
 				require.Error(t, err)
 				return

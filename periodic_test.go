@@ -288,57 +288,92 @@ func TestPeriod_ContainsTime(t *testing.T) {
 		expectedResult bool
 		p              Period
 		t              time.Time
+		endInclusive   bool
 	}{
 		{
 			"Period 01/01/2018 05:00-21:00, request for 05:00 is contained",
 			true,
 			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
 			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
+			false,
 		}, {
 			"Period 01/01/2018 05:00-21:00, request for 04:59 is not contained",
 			false,
 			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
 			time.Date(2018, 1, 1, 4, 59, 0, 0, time.UTC),
+			false,
 		}, {
 			"01/01/2018 Period 21:00 - 01/02/2018 05:00, request for 21:00 is contained",
 			true,
 			NewPeriod(time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 5, 0, 0, 0, time.UTC)),
 			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+			false,
 		}, {
 			"01/01/2018 Period 21:00 - 01/02/2018 05:00, request for 20:59 is not contained",
 			false,
 			NewPeriod(time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 5, 0, 0, 0, time.UTC)),
 			time.Date(2018, 1, 1, 20, 59, 0, 0, time.UTC),
+			false,
 		}, {
 			"Period 0 - 0 contains any time",
 			true,
 			Period{},
 			time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC),
+			false,
 		}, {
 			"Period with only start time contains anything after start",
 			true,
 			NewPeriod(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
 			time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC),
+			false,
 		}, {
 			"Period with only start time does not contain anything before start",
 			false,
 			NewPeriod(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
 			time.Date(2017, 12, 31, 23, 59, 0, 0, time.UTC),
+			false,
 		}, {
 			"Period with only end time contains anything before the end",
 			true,
 			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
 			time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC),
+			false,
 		}, {
 			"Period with only end time does not contain anything after the end",
 			false,
 			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
 			time.Date(2018, 1, 2, 0, 0, 0, 0, time.UTC),
+			false,
+		}, {
+			"Period 0 - 01/01/2018 05:00, request for 05:00 is not contained",
+			false,
+			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
+			false,
+		}, {
+			"Period 01/01/2018 05:00-21:00, request for 21:00 is not contained",
+			false,
+			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+			false,
+		},
+		{
+			"End inclusive period 0 - 01/01/2018 05:00, request for 05:00 is contained",
+			true,
+			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
+			true,
+		}, {
+			"End inclusive period 01/01/2018 05:00-21:00, request for 21:00 is contained",
+			true,
+			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+			true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expectedResult, test.p.ContainsTime(test.t))
+			assert.Equal(t, test.expectedResult, test.p.ContainsTime(test.t, test.endInclusive))
 		})
 	}
 }

@@ -29,6 +29,8 @@ type FloatingPeriod struct {
 	Days ApplicableDays
 	// Timezone where the period is located
 	Location *time.Location
+	// Indicates whether the end time is included in the period
+	EndInclusive bool
 }
 
 // FloatingPeriodConstructionError is the error type returned if there is a problem constructing a FloatingPeriod
@@ -40,7 +42,7 @@ func (f FloatingPeriodConstructionError) Error() string {
 }
 
 // NewFloatingPeriod constructs a new floating period
-func NewFloatingPeriod(start, end time.Duration, days ApplicableDays, location *time.Location) (FloatingPeriod, error) {
+func NewFloatingPeriod(start, end time.Duration, days ApplicableDays, location *time.Location, endInclusive bool) (FloatingPeriod, error) {
 	if !days.AnyApplicable() {
 		return FloatingPeriod{}, FloatingPeriodConstructionError("floating period must have at least 1 applicable day")
 	}
@@ -49,10 +51,11 @@ func NewFloatingPeriod(start, end time.Duration, days ApplicableDays, location *
 		l = time.UTC
 	}
 	return FloatingPeriod{
-		Start:    start,
-		End:      end,
-		Days:     days,
-		Location: l,
+		Start:        start,
+		End:          end,
+		Days:         days,
+		Location:     l,
+		EndInclusive: endInclusive,
 	}, nil
 }
 
@@ -83,7 +86,13 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 		// The start and end of the floating period occurs on the same day, so we only need to scan for the
 		// next recurrence if the floating period is not applicable on the current day or if the time since midnight
 		// of the given date comes after the end of the floating period.
-		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location) || durationSinceMidnight >= fp.End
+		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location)
+
+		if fp.EndInclusive {
+			scanForNextRecurrence = scanForNextRecurrence || durationSinceMidnight > fp.End
+		} else {
+			scanForNextRecurrence = scanForNextRecurrence || durationSinceMidnight >= fp.End
+		}
 	}
 
 	// Scan until a day on which the floating period is applicable is found
@@ -106,7 +115,7 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 // if the start time does not fall within the floating period
 func (fp FloatingPeriod) FromTime(t time.Time) *Period {
 	p := fp.AtDate(t)
-	if !p.ContainsTime(t) {
+	if !p.ContainsTime(t, false) {
 		return nil
 	}
 	fromPeriod := NewPeriod(t, p.End)
@@ -119,9 +128,9 @@ func (fp FloatingPeriod) Contains(period Period) bool {
 	return fp.DayApplicable(atDate.Start) && atDate.Contains(period)
 }
 
-// ContainsTime determines if the FloatingPeriod contains the specified time.
+// ContainsTime determines if the FloatingPeriod contains the specified time, excluding the end time of the period.
 func (fp FloatingPeriod) ContainsTime(t time.Time) bool {
-	return fp.AtDate(t).ContainsTime(t)
+	return fp.AtDate(t).ContainsTime(t, fp.EndInclusive)
 }
 
 // Intersects determines if the FloatingPeriod intersects the specified Period.

@@ -9,9 +9,9 @@ import (
 
 // NewFloatingPeriodForTest constructs a new FloatingPeriod but will fail the test if there is an error constructing
 // the FloatingPeriod.
-func NewFloatingPeriodForTest(t *testing.T, s, e time.Duration, ad periodic.ApplicableDays, l *time.Location) periodic.FloatingPeriod {
+func NewFloatingPeriodForTest(t *testing.T, s, e time.Duration, ad periodic.ApplicableDays, l *time.Location, endInclusive bool) periodic.FloatingPeriod {
 	t.Helper()
-	fp, err := periodic.NewFloatingPeriod(s, e, ad, l)
+	fp, err := periodic.NewFloatingPeriod(s, e, ad, l, endInclusive)
 	require.NoError(t, err)
 	return fp
 }
