@@ -123,7 +123,7 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 // if the start time does not fall within the continuous period
 func (cp ContinuousPeriod) FromTime(t time.Time) *Period {
 	p := cp.AtDate(t)
-	if !p.ContainsTime(t) {
+	if !p.ContainsTime(t, false) {
 		return nil
 	}
 	fromPeriod := NewPeriod(t, p.End)
@@ -137,7 +137,7 @@ func (cp ContinuousPeriod) Contains(period Period) bool {
 
 // ContainsTime determines if the continuous period contains the specified time.
 func (cp ContinuousPeriod) ContainsTime(t time.Time) bool {
-	return cp.AtDate(t).ContainsTime(t)
+	return cp.AtDate(t).ContainsTime(t, false)
 }
 
 // Intersects returns whether or not the given period has any overlap with any occurrence of a ContinuousPeriod.

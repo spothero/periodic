@@ -389,7 +389,7 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 	if root.leaf {
 		return false
 	}
-	if root.period.ContainsTime(time) {
+	if root.period.ContainsTime(time, false) {
 		return true
 	}
 	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {

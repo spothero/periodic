@@ -117,17 +117,8 @@ func (p Period) Less(d time.Duration) bool {
 	return p.End.Sub(p.Start) < d
 }
 
-// ContainsTime determines if the Period contains the specified time, excluding the end time of the period.
-func (p Period) ContainsTime(t time.Time) bool {
-	return p.containsTime(t, false)
-}
-
-// ContainsTimeEndInclusive determines if the Period contains the specified time, including the end time of the period.
-func (p Period) ContainsTimeEndInclusive(t time.Time) bool {
-	return p.containsTime(t, true)
-}
-
-func (p Period) containsTime(t time.Time, endInclusive bool) bool {
+// ContainsTime determines if the Period contains the specified time.
+func (p Period) ContainsTime(t time.Time, endInclusive bool) bool {
 	if p.Start.IsZero() && p.End.IsZero() {
 		return true
 	} else if !p.Start.IsZero() && p.End.IsZero() {
