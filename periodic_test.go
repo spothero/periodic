@@ -334,11 +334,47 @@ func TestPeriod_ContainsTime(t *testing.T) {
 			false,
 			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
 			time.Date(2018, 1, 2, 0, 0, 0, 0, time.UTC),
+		}, {
+			"Period 0 - 01/01/2018 05:00, request for 05:00 is not contained",
+			false,
+			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
+		}, {
+			"Period 01/01/2018 05:00-21:00, request for 21:00 is not contained",
+			false,
+			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expectedResult, test.p.ContainsTime(test.t))
+		})
+	}
+}
+
+func TestPeriod_ContainsTimeEndInclusive(t *testing.T) {
+	tests := []struct {
+		name           string
+		expectedResult bool
+		p              Period
+		t              time.Time
+	}{
+		{
+			"Period 0 - 01/01/2018 05:00, request for 05:00 is contained",
+			true,
+			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
+		}, {
+			"Period 01/01/2018 05:00-21:00, request for 21:00 is contained",
+			true,
+			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedResult, test.p.ContainsTimeEndInclusive(test.t))
 		})
 	}
 }

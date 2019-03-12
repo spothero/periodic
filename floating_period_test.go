@@ -351,11 +351,37 @@ func TestFloatingPeriod_ContainsTime(t *testing.T) {
 			false,
 			FloatingPeriod{Start: 21 * time.Hour, End: 5 * time.Hour, Days: NewApplicableDaysMonStart(1, 6), Location: time.UTC},
 			time.Date(2018, 1, 1, 20, 59, 0, 0, time.UTC),
+		}, {
+			"Floating Period 05:00-21:00, request for 21:00 is not contained",
+			false,
+			FloatingPeriod{Start: 5 * time.Hour, End: 21 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC},
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expectedResult, test.fp.ContainsTime(test.t))
+		})
+	}
+}
+
+func TestFloatingPeriod_ContainsTimeEndInclusive(t *testing.T) {
+	tests := []struct {
+		name           string
+		expectedResult bool
+		fp             FloatingPeriod
+		t              time.Time
+	}{
+		{
+			"Floating Period 05:00-21:00, request for 21:00 is contained",
+			true,
+			FloatingPeriod{Start: 5 * time.Hour, End: 21 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC},
+			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expectedResult, test.fp.ContainsTimeEndInclusive(test.t))
 		})
 	}
 }

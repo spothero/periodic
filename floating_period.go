@@ -67,6 +67,10 @@ func (fp FloatingPeriod) Contiguous() bool {
 // floating period, the period that is returned is the next occurrence of the floating period. Note that
 // containment is inclusive on the continuous period start time but not on the end time.
 func (fp FloatingPeriod) AtDate(date time.Time) Period {
+	return fp.atDate(date,false)
+}
+
+func (fp FloatingPeriod) atDate(date time.Time, endInclusive bool) Period {
 	dateInLoc := date.In(fp.Location)
 	midnight := time.Date(dateInLoc.Year(), dateInLoc.Month(), dateInLoc.Day(), 0, 0, 0, 0, fp.Location)
 	durationSinceMidnight := dateInLoc.Sub(midnight)
@@ -83,7 +87,13 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 		// The start and end of the floating period occurs on the same day, so we only need to scan for the
 		// next recurrence if the floating period is not applicable on the current day or if the time since midnight
 		// of the given date comes after the end of the floating period.
-		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location) || durationSinceMidnight >= fp.End
+		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location)
+
+		if endInclusive {
+			scanForNextRecurrence = scanForNextRecurrence || durationSinceMidnight > fp.End
+		} else {
+			scanForNextRecurrence = scanForNextRecurrence || durationSinceMidnight >= fp.End
+		}
 	}
 
 	// Scan until a day on which the floating period is applicable is found
@@ -119,9 +129,14 @@ func (fp FloatingPeriod) Contains(period Period) bool {
 	return fp.DayApplicable(atDate.Start) && atDate.Contains(period)
 }
 
-// ContainsTime determines if the FloatingPeriod contains the specified time.
+// ContainsTime determines if the FloatingPeriod contains the specified time, excluding the end time of the period.
 func (fp FloatingPeriod) ContainsTime(t time.Time) bool {
 	return fp.AtDate(t).ContainsTime(t)
+}
+
+// ContainsTime determines if the FloatingPeriod contains the specified time, including the end time of the period.
+func (fp FloatingPeriod) ContainsTimeEndInclusive(t time.Time) bool {
+	return fp.atDate(t, true).ContainsTimeEndInclusive(t)
 }
 
 // Intersects determines if the FloatingPeriod intersects the specified Period.
