@@ -135,9 +135,9 @@ func (p Period) containsTime(t time.Time, endInclusive bool) bool {
 	} else if p.Start.IsZero() && !p.End.IsZero() {
 		if endInclusive {
 			return p.End.After(t) || p.End.Equal(t)
-		} else {
-			return p.End.After(t)
 		}
+
+		return p.End.After(t)
 	}
 
 	if endInclusive {

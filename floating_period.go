@@ -67,7 +67,7 @@ func (fp FloatingPeriod) Contiguous() bool {
 // floating period, the period that is returned is the next occurrence of the floating period. Note that
 // containment is inclusive on the continuous period start time but not on the end time.
 func (fp FloatingPeriod) AtDate(date time.Time) Period {
-	return fp.atDate(date,false)
+	return fp.atDate(date, false)
 }
 
 func (fp FloatingPeriod) atDate(date time.Time, endInclusive bool) Period {
@@ -134,7 +134,7 @@ func (fp FloatingPeriod) ContainsTime(t time.Time) bool {
 	return fp.AtDate(t).ContainsTime(t)
 }
 
-// ContainsTime determines if the FloatingPeriod contains the specified time, including the end time of the period.
+// ContainsTimeEndInclusive determines if the FloatingPeriod contains the specified time, including the end time of the period.
 func (fp FloatingPeriod) ContainsTimeEndInclusive(t time.Time) bool {
 	return fp.atDate(t, true).ContainsTimeEndInclusive(t)
 }
