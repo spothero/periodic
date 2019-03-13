@@ -78,7 +78,7 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 		// The floating period spills over into the next day: if the given date is closer to midnight than the
 		// end of the floating period, we actually want to check if the floating period was applicable on
 		// the previous day. If it was not, we need to scan for the next recurrence of the floating period.
-		if durationSinceMidnight < fp.End {
+		if (durationSinceMidnight < fp.End) || (durationSinceMidnight == fp.End && fp.EndInclusive) {
 			midnight = midnight.AddDate(0, 0, -1)
 		}
 		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location)

@@ -361,6 +361,16 @@ func TestFloatingPeriod_ContainsTime(t *testing.T) {
 			true,
 			FloatingPeriod{Start: 5 * time.Hour, End: 21 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC, EndInclusive: true},
 			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+		}, {
+			"End inclusive floating Period 14:00-02:00, request for 02:00 is contained",
+			true,
+			FloatingPeriod{Start: 14 * time.Hour, End: 2 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC, EndInclusive: true},
+			time.Date(2018, 1, 1, 2, 0, 0, 0, time.UTC),
+		}, {
+			"End inclusive floating Period 14:00-00:00, request for 00:00 is contained",
+			true,
+			FloatingPeriod{Start: 14 * time.Hour, End: 0 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC, EndInclusive: true},
+			time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC),
 		},
 	}
 	for _, test := range tests {
