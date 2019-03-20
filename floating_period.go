@@ -81,7 +81,15 @@ func (fp FloatingPeriod) AtDate(date time.Time) Period {
 		if (durationSinceMidnight < fp.End) || (durationSinceMidnight == fp.End && fp.EndInclusive) {
 			midnight = midnight.AddDate(0, 0, -1)
 		}
-		scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location)
+
+		if fp.End == 0 && !fp.EndInclusive {
+			// The floating period ends at midnight: if the end is not inclusive, the end time is really the next day;
+			// scan if the next day is not applicable, but still use the current date as the midnight reference.
+			scanForNextRecurrence = !fp.Days.TimeApplicable(midnight.AddDate(0, 0, 1), fp.Location)
+		} else {
+			scanForNextRecurrence = !fp.Days.TimeApplicable(midnight, fp.Location)
+		}
+
 	} else {
 		// The start and end of the floating period occurs on the same day, so we only need to scan for the
 		// next recurrence if the floating period is not applicable on the current day or if the time since midnight

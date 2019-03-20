@@ -83,11 +83,6 @@ func TestFloatingPeriod_AtDate(t *testing.T) {
 			FloatingPeriod{Start: 21 * time.Hour, End: 5 * time.Hour, Days: NewApplicableDaysMonStart(0, 6), Location: time.UTC},
 			time.Date(2018, 11, 13, 22, 0, 0, 0, time.UTC),
 		}, {
-			"Floating Period 15:00-0:00 returns 11/13/2018 15:00 - 11/14/2018 00:00 CST when requested with 11/14/2018 00:30 UTC",
-			Period{Start: time.Date(2018, 11, 13, 15, 0, 0, 0, chiTz), End: time.Date(2018, 11, 14, 0, 0, 0, 0, chiTz)},
-			FloatingPeriod{Start: 15 * time.Hour, End: 0, Days: NewApplicableDaysMonStart(0, 6), Location: chiTz},
-			time.Date(2018, 11, 14, 0, 30, 0, 0, time.UTC),
-		}, {
 			"Floating period 09:00-12:00 MWF, request anytime on Tuesday returns period on Wednesday",
 			Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 12, 0, 0, 0, time.UTC)},
 			FloatingPeriod{Start: 9 * time.Hour, End: 12 * time.Hour, Days: ApplicableDays{Monday: true, Wednesday: true, Friday: true}, Location: time.UTC},
@@ -117,8 +112,7 @@ func TestFloatingPeriod_AtDate(t *testing.T) {
 			Period{Start: time.Date(2019, 1, 7, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 8, 2, 0, 0, 0, time.UTC)},
 			FloatingPeriod{Start: 20 * time.Hour, End: 2 * time.Hour, Days: ApplicableDays{Monday: true, Tuesday: true, Wednesday: true}, Location: time.UTC},
 			time.Date(2019, 1, 8, 1, 0, 0, 0, time.UTC),
-		},
-		{
+		}, {
 			"Floating period 20:00-02:00 MTW, request 05:00 Tuesday returns 20:00 T - 02:00 W",
 			Period{Start: time.Date(2019, 1, 8, 20, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 9, 2, 0, 0, 0, time.UTC)},
 			FloatingPeriod{Start: 20 * time.Hour, End: 2 * time.Hour, Days: ApplicableDays{Monday: true, Tuesday: true, Wednesday: true}, Location: time.UTC},
@@ -133,6 +127,26 @@ func TestFloatingPeriod_AtDate(t *testing.T) {
 			Period{Start: time.Date(2019, 1, 9, 9, 0, 0, 0, time.UTC), End: time.Date(2019, 1, 10, 9, 0, 0, 0, time.UTC)},
 			FloatingPeriod{Start: 9 * time.Hour, End: 9 * time.Hour, Days: ApplicableDays{Monday: true, Wednesday: true}, Location: time.UTC},
 			time.Date(2019, 1, 8, 12, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period ending at midnight the following day, request after midnight returns next occurrence",
+			Period{Start: time.Date(2019, 3, 29, 0, 0, 0, 0, time.UTC), End: time.Date(2019, 3, 30, 0, 0, 0, 0, time.UTC)},
+			FloatingPeriod{Start: 0, End: 0, Days: ApplicableDays{Friday: true, Saturday: true}, Location: time.UTC},
+			time.Date(2019, 3, 23, 12, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period ending at midnight the following day, request at midnight returns next occurrence",
+			Period{Start: time.Date(2019, 3, 29, 0, 0, 0, 0, time.UTC), End: time.Date(2019, 3, 30, 0, 0, 0, 0, time.UTC)},
+			FloatingPeriod{Start: 0, End: 0, Days: ApplicableDays{Friday: true, Saturday: true}, Location: time.UTC},
+			time.Date(2019, 3, 23, 0, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period ending at midnight the following day, request at midnight and end inclusive returns current occurrence",
+			Period{Start: time.Date(2019, 3, 22, 0, 0, 0, 0, time.UTC), End: time.Date(2019, 3, 23, 0, 0, 0, 0, time.UTC)},
+			FloatingPeriod{Start: 0, End: 0, Days: ApplicableDays{Friday: true, Saturday: true}, Location: time.UTC, EndInclusive: true},
+			time.Date(2019, 3, 23, 0, 0, 0, 0, time.UTC),
+		}, {
+			"Floating period ending at midnight the following day, request before midnight returns the current occurrence",
+			Period{Start: time.Date(2018, 11, 13, 15, 0, 0, 0, chiTz), End: time.Date(2018, 11, 14, 0, 0, 0, 0, chiTz)},
+			FloatingPeriod{Start: 15 * time.Hour, End: 0, Days: NewApplicableDaysMonStart(0, 6), Location: chiTz},
+			time.Date(2018, 11, 13, 15, 30, 0, 0, chiTz),
 		},
 	}
 	for _, test := range tests {
