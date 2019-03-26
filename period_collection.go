@@ -488,3 +488,17 @@ func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, vi
 		*visitedContents = append(*visitedContents, n.contents)
 	}
 }
+
+// DeleteOnCondition will delete all nodes in the collection with contents that satisfy the given condition
+// Note that this method can be time consuming for large trees and multiple deletions as it may involve multiple
+// tree rotations.
+func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{}) bool) error {
+	pc.mutex.Lock()
+	defer pc.mutex.Unlock()
+	for _, node := range pc.nodes {
+		if condition(node.contents) {
+			pc.delete(node)
+		}
+	}
+	return nil
+}

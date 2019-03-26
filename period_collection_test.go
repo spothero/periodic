@@ -2024,3 +2024,67 @@ func TestPeriodCollection_DepthFirstTraverse(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
+	setupTree := func() *PeriodCollection {
+		nodes := []struct {
+			contents int
+			period   Period
+		}{
+			{1, NewPeriod(time.Time{}, time.Time{})},
+			{2, NewPeriod(time.Time{}, time.Time{})},
+			{3, NewPeriod(time.Time{}, time.Time{})},
+			{4, NewPeriod(time.Time{}, time.Time{})},
+			{5, NewPeriod(time.Time{}, time.Time{})},
+			{6, NewPeriod(time.Time{}, time.Time{})},
+		}
+		pc := NewPeriodCollection()
+		for _, n := range nodes {
+			require.NoError(t, pc.Insert(n.period, n.contents, n.contents))
+		}
+		return pc
+	}
+	tests := []struct {
+		name            string
+		condition       func(i interface{}) bool
+		validate    func(t *testing.T, pc *PeriodCollection, err error)
+	}{
+		{
+			"delete all nodes",
+			func(i interface{}) bool {
+				return true
+			},
+			func(t *testing.T, pc *PeriodCollection, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, 0, len(pc.nodes))
+			},
+		}, {
+			"delete 0 nodes",
+			func(i interface{}) bool {
+				return false
+			},
+			func(t *testing.T, pc *PeriodCollection, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, 6, len(pc.nodes))
+			},
+		}, {
+			"delete all even numbers",
+			func(i interface{}) bool {
+				return i.(int) % 2 == 0
+			},
+			func(t *testing.T, pc *PeriodCollection, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, 3, len(pc.nodes))
+				assert.True(t, pc.ContainsKey(1))
+				assert.True(t, pc.ContainsKey(3))
+				assert.True(t, pc.ContainsKey(5))
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pc := setupTree()
+			test.validate(t, pc, pc.DeleteOnCondition(test.condition))
+		})
+	}
+}
