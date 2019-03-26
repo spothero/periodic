@@ -2045,9 +2045,9 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 		return pc
 	}
 	tests := []struct {
-		name            string
-		condition       func(i interface{}) bool
-		validate    func(t *testing.T, pc *PeriodCollection, err error)
+		name      string
+		condition func(i interface{}) bool
+		validate  func(t *testing.T, pc *PeriodCollection, err error)
 	}{
 		{
 			"delete all nodes",
@@ -2070,7 +2070,7 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 		}, {
 			"delete all even numbers",
 			func(i interface{}) bool {
-				return i.(int) % 2 == 0
+				return i.(int)%2 == 0
 			},
 			func(t *testing.T, pc *PeriodCollection, err error) {
 				assert.NoError(t, err)
