@@ -619,3 +619,26 @@ func TestMonStartToSunStart(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriod_IsZero(t *testing.T) {
+	tests := []struct {
+		name    string
+		p       Period
+		outcome bool
+	}{
+		{
+			"period where start and end are not equal is not zero",
+			Period{Start: time.Unix(1, 0), End: time.Unix(5, 0)},
+			false,
+		}, {
+			"period where start and end are equal is zero",
+			Period{Start: time.Unix(1, 0), End: time.Unix(1, 0)},
+			true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.outcome, test.p.IsZero())
+		})
+	}
+}
