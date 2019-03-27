@@ -145,6 +145,12 @@ func (p Period) Equals(other Period) bool {
 	return p.Start.Equal(other.Start) && p.End.Equal(other.End)
 }
 
+// IsZero returns whether the period encompasses no time; in other words, the time difference between the start and end
+// of the period is zero.
+func (p Period) IsZero() bool {
+	return p.Start.Sub(p.End) == 0
+}
+
 // MaxTime returns the maximum of the provided times
 func MaxTime(times ...time.Time) time.Time {
 	if len(times) == 0 {
