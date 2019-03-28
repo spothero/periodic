@@ -29,8 +29,8 @@ const (
 
 // Period defines a block of time bounded by a start and end.
 type Period struct {
-	Start time.Time
-	End   time.Time
+	Start time.Time `json:"start"`
+	End   time.Time `json:"end"`
 }
 
 // RecurringPeriod defines an interface for converting periods that represent abstract points in time
