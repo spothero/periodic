@@ -1,6 +1,7 @@
 version: 2.1
 orbs:
-  codecov: codecov/codecov@1.0.4
+  # codecov: codecov/codecov@1.0.4
+  gotools: gotest/tools@0.0.8
 jobs:
   build:
     docker:
@@ -8,10 +9,15 @@ jobs:
     working_directory: /go/src/github.com/spothero/periodic
     steps:
       - checkout
-      - run: make
+      - run: make bootstrap
+      - run: make vendor
+      - run: make lint
+      - gotools/test:
+          packages: github.com/spothero/periodic
+          codecov-upload: true
       # CircleCI likes tests results to be in sub-directories for naming
-      - run: mkdir -p /tmp/test-results/periodic && cp report.xml /tmp/test-results/periodic/report.xml
-      - store_test_results:
-          path: /tmp/test-results
-      - codecov/upload:
-          file: coverage.txt
+      # - run: mkdir -p /tmp/test-results/periodic && cp report.xml /tmp/test-results/periodic/report.xml
+      # - store_test_results:
+          # path: /tmp/test-results
+      # - codecov/upload:
+          # file: coverage.txt

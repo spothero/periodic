@@ -5,8 +5,7 @@ all: bootstrap vendor lint test
 # Bootstrapping for base golang package deps
 BOOTSTRAP=\
 	github.com/golang/dep/cmd/dep \
-	github.com/alecthomas/gometalinter \
-	github.com/jstemmer/go-junit-report
+	github.com/alecthomas/gometalinter
 
 $(BOOTSTRAP):
 	go get -u $@
@@ -18,7 +17,7 @@ vendor:
 	dep ensure -v -vendor-only
 
 test:
-	go test -race -v github.com/spothero/periodic -coverprofile=coverage.txt -covermode=atomic | go-junit-report > report.xml
+	go test -race -v github.com/spothero/periodic -coverprofile=coverage.txt -covermode=atomic
 
 coverage: test
 	go tool cover -html=coverage.txt
