@@ -23,7 +23,6 @@ jobs:
       - checkout
       - run: make vendor
       - run: gotestsum --junitfile tests.xml github.com/spothero/periodic -- -race -coverprofile=coverage.txt -covermode=atomic
-      # CircleCI likes tests results to be in sub-directories for naming
       - run: mkdir -p /tmp/tests/unit && cp tests.xml /tmp/tests/unit/tests.xml
       - store_test_results:
           path: /tmp/tests
