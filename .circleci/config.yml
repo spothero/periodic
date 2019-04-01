@@ -9,7 +9,10 @@ jobs:
     steps:
       - checkout
       - run: make
+      - store_artifacts:
+          path: report.xml
+          destination: /tmp/test_results
       - store_test_results:
-          path: ./report.xml
+          path: /tmp/test_results
       - codecov/upload:
-          file: ./coverage.txt
+          file: coverage.txt
