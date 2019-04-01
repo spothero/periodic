@@ -22,7 +22,7 @@ jobs:
     steps:
       - checkout
       - run: make vendor
-      - run: gotestsum github.com/spothero/periodic --junitfile tests.xml -- -race -coverprofile=coverage.txt -covermode=atomic
+      - run: gotestsum --junitfile tests.xml github.com/spothero/periodic -- -race -coverprofile=coverage.txt -covermode=atomic
       # CircleCI likes tests results to be in sub-directories for naming
       - run: mkdir -p /tmp/test-results/unit && cp tests.xml /tmp/test-results/unit/tests.xml
       - run: bash <(curl -s https://codecov.io/bash)
