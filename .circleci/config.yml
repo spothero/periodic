@@ -11,7 +11,7 @@ jobs:
       - run: make
       - store_artifacts:
           path: report.xml
-          destination: /tmp/test_results
+          destination: /tmp/test_results/report.xml
       - store_test_results:
           path: /tmp/test_results
       - codecov/upload:
