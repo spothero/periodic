@@ -13,6 +13,6 @@ jobs:
           path: report.xml
           destination: /tmp/report.xml
       - store_test_results:
-          path: /tmp/report.xml
+          path: /tmp
       - codecov/upload:
           file: coverage.txt
