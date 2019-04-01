@@ -11,4 +11,3 @@ jobs:
       - run: make
       - codecov/upload:
           file: coverage.txt
-
