@@ -1,0 +1,13 @@
+version: 2.1
+orbs:
+  codecov: codecov/codecov@1.0.4
+jobs:
+  build:
+    docker:
+      - image: golang:1.12
+    working_directory: /go/src/github.com/spothero/periodic
+    steps:
+      - checkout
+      - run: make
+      - codecov/upload:
+          file: coverage.txt
