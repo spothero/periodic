@@ -16,4 +16,3 @@ jobs:
           path: /tmp
       - codecov/upload:
           file: coverage.txt
-          token: d399ce1d-9647-444a-8f6a-e850fde183c8
