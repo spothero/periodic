@@ -1,7 +1,7 @@
 # Time Period Calculations for Go
 
 [![GoDoc](https://godoc.org/github.com/spothero/periodic?status.svg)](https://godoc.org/github.com/spothero/periodic)
-[![Build Status](https://travis-ci.org/spothero/periodic.png?branch=master)](https://travis-ci.org/spothero/periodic)
+[![Build Status](https://circleci.com/gh/spothero/periodic/tree/master.svg?style=svg)](https://circleci.com/gh/spothero/periodic/tree/master)
 [![codecov](https://codecov.io/gh/spothero/periodic/branch/master/graph/badge.svg)](https://codecov.io/gh/spothero/periodic)
 [![Go Report Card](https://goreportcard.com/badge/github.com/spothero/periodic)](https://goreportcard.com/report/github.com/spothero/periodic)
 

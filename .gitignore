@@ -12,7 +12,6 @@
 *.out
 vendor/
 coverage.txt
-report.xml
 
 # Various IDEs
 .vscode
