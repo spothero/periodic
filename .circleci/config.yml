@@ -9,8 +9,8 @@ jobs:
     steps:
       - checkout
       - run: make
-      - run: cp results.xml /tmp/results.xml
+      - run: cp report.xml /tmp/test-results/report.xml
       - store_test_results:
-          path: /tmp
+          path: /tmp/test-results
       - codecov/upload:
           file: coverage.txt
