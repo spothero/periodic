@@ -1,6 +1,12 @@
 version: 2.1
 jobs:
-  build:
+  # build:
+  #   docker:
+  #     - image: circleci/golang:1.12
+  #   working_directory: /go/src/github.com/spothero/periodic
+  #   steps:
+
+  lint:
     docker:
       - image: circleci/golang:1.12
     working_directory: /go/src/github.com/spothero/periodic
@@ -8,17 +14,14 @@ jobs:
       - checkout
       - run: make bootstrap
       - run: make vendor
-  lint:
-    docker:
-      - image: circleci/golang:1.12
-    working_directory: /go/src/github.com/spothero/periodic
-    steps:
       - run: make lint
   test:
     docker:
       - image: circleci/golang:1.12
     working_directory: /go/src/github.com/spothero/periodic
     steps:
+      - checkout
+      - run: make vendor
       - run: gotestsum github.com/spothero/periodic --junitfile tests.xml -- -race -coverprofile=coverage.txt -covermode=atomic
       # CircleCI likes tests results to be in sub-directories for naming
       - run: mkdir -p /tmp/test-results/unit && cp tests.xml /tmp/test-results/unit/tests.xml
@@ -27,10 +30,5 @@ workflows:
   version: 2
   test_and_lint:
     jobs:
-      - build
-      - lint:
-          requires:
-            - build
-      - test:
-          requires:
-            - build
+      - lint
+      - test
