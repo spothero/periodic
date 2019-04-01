@@ -1,23 +1,26 @@
 version: 2.1
-workflow:
-  version: 2
-  jobs:
-    lint:
-      docker:
-        - image: circleci/golang:1.12
-      working_directory: /go/src/github.com/spothero/periodic
-      steps:
-        - checkout
-        - run: make bootstrap
-        - run: make vendor
-        - run: make lint
-    test:
-      docker:
-        - image: circleci/golang:1.12
-      working_directory: /go/src/github.com/spothero/periodic
-      steps:
-        - checkout
-        - run: gotestsum github.com/spothero/periodic --junitfile tests.xml -- -race -coverprofile=coverage.txt -covermode=atomic
-        # CircleCI likes tests results to be in sub-directories for naming
-        - run: mkdir -p /tmp/test-results/unit && cp tests.xml /tmp/test-results/unit/tests.xml
-        - run: bash <(curl -s https://codecov.io/bash)
+jobs:
+  lint:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/spothero/periodic
+    steps:
+      - checkout
+      - run: make bootstrap
+      - run: make vendor
+      - run: make lint
+  test:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/spothero/periodic
+    steps:
+      - checkout
+      - run: gotestsum github.com/spothero/periodic --junitfile tests.xml -- -race -coverprofile=coverage.txt -covermode=atomic
+      # CircleCI likes tests results to be in sub-directories for naming
+      - run: mkdir -p /tmp/test-results/unit && cp tests.xml /tmp/test-results/unit/tests.xml
+      - run: bash <(curl -s https://codecov.io/bash)
+# workflow:
+#   version: 2
+#   jobs:
+#     - lint
+#     - test
