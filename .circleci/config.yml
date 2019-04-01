@@ -25,6 +25,8 @@ jobs:
       - run: gotestsum --junitfile tests.xml github.com/spothero/periodic -- -race -coverprofile=coverage.txt -covermode=atomic
       # CircleCI likes tests results to be in sub-directories for naming
       - run: mkdir -p /tmp/test-results/unit && cp tests.xml /tmp/test-results/unit/tests.xml
+      - store_test_results:
+          path: /tmp/test-results
       - run: bash <(curl -s https://codecov.io/bash)
 workflows:
   version: 2
