@@ -10,8 +10,8 @@ jobs:
       - checkout
       - run: make
       # CircleCI likes tests results to be in sub-directories for naming
-      - run: mkdir /tmp/periodic && cp report.xml /tmp/periodic/report.xml
+      - run: mkdir /tmp/test-results/periodic && cp report.xml /tmp/test-results/periodic/report.xml
       - store_test_results:
-          path: /tmp/periodic
+          path: /tmp/test-results/periodic
       - codecov/upload:
           file: coverage.txt
