@@ -11,4 +11,5 @@ jobs:
       - run: make
       - codecov/upload:
           file: coverage.txt
-
+      - store_test_results:
+          path: report.xml
