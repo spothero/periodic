@@ -34,7 +34,7 @@ func TestContinuousPeriod_AtDate(t *testing.T) {
 	}{
 		{
 			"CP 0500 M - 1800 F is offset correctly from 2018-10-03T13:13:13Z",
-			NewPeriod(time.Date(2018, 10, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 10, 5, 18, 0, 0, 2, time.UTC)),
+			NewPeriod(time.Date(2018, 10, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 10, 5, 18, 0, 0, 0, time.UTC)),
 			NewContinuousPeriod(5*time.Hour, 18*time.Hour, time.Monday, time.Friday, time.UTC),
 			time.Date(2018, 10, 3, 13, 13, 13, 13, time.UTC),
 		}, {
