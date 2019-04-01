@@ -1,7 +1,7 @@
 version: 2.1
 workflow:
   version: 2
-  test_and_lint:
+  build:
     jobs:
       lint:
         docker:
