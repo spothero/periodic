@@ -1,0 +1,18 @@
+run:
+  deadline: 5m
+  tests: true
+
+linters:
+  enable:
+    - golint
+    - gofmt
+    - staticcheck
+    - vet
+    - misspell
+    - ineffassign
+    - deadcode
+    - errcheck
+    - structcheck
+    - unused
+    - varcheck
+  enable-all: false

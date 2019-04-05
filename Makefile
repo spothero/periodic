@@ -1,20 +1,18 @@
 default_target: all
 
-all: bootstrap vendor lint test
+all: lint test
 
-# Bootstrapping for base golang package deps
-BOOTSTRAP=\
-	github.com/golang/dep/cmd/dep \
-	github.com/alecthomas/gometalinter
+uname := $(shell sh -c 'uname -s')
+ifeq ($(uname),Linux)
+	LINTER_INSTALL=curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.16.0
+endif
+ifeq ($(uname),Darwin)
+	LINTER_INSTALL=brew install golangci/tap/golangci-lint
+endif
 
-$(BOOTSTRAP):
-	go get -u $@
-
-bootstrap: $(BOOTSTRAP)
-	gometalinter --install
-
-vendor:
-	dep ensure -v -vendor-only
+.PHONY: bootstrap
+bootstrap:
+	$(LINTER_INSTALL)
 
 test:
 	go test -race -v github.com/spothero/periodic -coverprofile=coverage.txt -covermode=atomic
@@ -25,12 +23,5 @@ coverage: test
 clean:
 	rm -rf vendor
 
-# Linting
-LINTERS=gofmt golint staticcheck vet misspell ineffassign deadcode
-METALINT=gometalinter --tests --disable-all --vendor --deadline=5m -e "zz_.*\.go" ./...
-
 lint:
-	$(METALINT) $(addprefix --enable=,$(LINTERS))
-
-$(LINTERS):
-	$(METALINT) --enable=$@
+	golangci-lint run
