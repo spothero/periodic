@@ -4,7 +4,7 @@ all: lint test
 
 uname := $(shell sh -c 'uname -s')
 ifeq ($(uname),Linux)
-	LINTER_INSTALL=curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.16.0
+	LINTER_INSTALL=curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin latest
 endif
 ifeq ($(uname),Darwin)
 	LINTER_INSTALL=brew install golangci/tap/golangci-lint
