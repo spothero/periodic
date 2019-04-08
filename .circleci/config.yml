@@ -3,7 +3,7 @@ jobs:
   lint:
     docker:
       - image: circleci/golang:1.12
-    working_directory: /go/src/github.com/spothero/periodic
+    working_directory: /tmp/periodic
     steps:
       - checkout
       - run: make bootstrap
@@ -12,7 +12,7 @@ jobs:
   test:
     docker:
       - image: circleci/golang:1.12
-    working_directory: /go/src/github.com/spothero/periodic
+    working_directory: /tmp/periodic
     steps:
       - checkout
       - run: make tidy
