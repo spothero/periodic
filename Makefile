@@ -14,10 +14,13 @@ endif
 bootstrap:
 	$(LINTER_INSTALL)
 
-build:
+install:
+	go install
+
+build: install
 	go build
 
-test: build
+test: install
 	go test -race -v github.com/spothero/periodic -coverprofile=coverage.txt -covermode=atomic
 
 coverage: test
