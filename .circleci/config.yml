@@ -7,6 +7,7 @@ jobs:
     steps:
       - checkout
       - run: make bootstrap
+      - run: make install
       - run: make lint
   test:
     docker:
@@ -14,6 +15,7 @@ jobs:
     working_directory: /go/src/github.com/spothero/periodic
     steps:
       - checkout
+      - run: make install
       - run: mkdir -p /tmp/test-reports/unit # CircleCI likes test results to be in sub-directories for naming
       - run: gotestsum --junitfile /tmp/test-reports/unit/report.xml -- github.com/spothero/periodic -race -coverprofile=coverage.txt -covermode=atomic
       - store_test_results:
