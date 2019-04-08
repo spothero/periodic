@@ -2,18 +2,9 @@ default_target: all
 
 all: lint test
 
-uname := $(shell sh -c 'uname -s')
-gopath := $(shell sh -c 'go env GOPATH')
-ifeq ($(uname),Linux)
-	LINTER_INSTALL=curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(gopath)/bin latest
-endif
-ifeq ($(uname),Darwin)
-	LINTER_INSTALL=brew install golangci/tap/golangci-lint
-endif
+.PHONY: all tidy build test coverage lint
 
-.PHONY: bootstrap
-bootstrap:
-	$(LINTER_INSTALL)
+LINTER_INSTALLED := $(shell sh -c 'which golangci-lint')
 
 tidy:
 	go mod tidy
@@ -27,8 +18,9 @@ test: tidy
 coverage: test
 	go tool cover -html=coverage.txt
 
-clean:
-	rm -rf vendor
-
 lint:
+ifdef LINTER_INSTALLED
 	golangci-lint run
+else
+	$(error golangci-lint not found, skipping linting. Installation instructions: https://github.com/golangci/golangci-lint#ci-installation)
+endif
