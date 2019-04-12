@@ -374,7 +374,6 @@ func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContent
 	// if the period has changed, delete the old node and insert a new one
 	pc.delete(oldNode)
 	pc.insert(newPeriod, key, newContents)
-	return
 }
 
 // ContainsTime returns whether there is any stored period that contains the supplied time.

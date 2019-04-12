@@ -501,8 +501,8 @@ func TestPeriodCollection_successor(t *testing.T) {
 
 func TestPeriodCollection_Delete(t *testing.T) {
 	tests := []struct {
-		name   string
-		key    interface{}
+		name string
+		key  interface{}
 	}{
 		{
 			"deleting a node should also remove it from the external map",
