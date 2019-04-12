@@ -63,19 +63,19 @@ func NewPeriodCollection() *PeriodCollection {
 // Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
 // when inserting a new period. contents is an arbitrary object associated with the period inserted. If a period
 // already exists with the given key, an error will be returned.
-func (pc *PeriodCollection) Insert(period Period, key, contents interface{}) error {
+func (pc *PeriodCollection) Insert(key interface{}, period Period, contents interface{}) error {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	if _, ok := pc.nodes[key]; ok {
 		return fmt.Errorf("period with key %v already exists", key)
 	}
-	pc.insert(period, key, contents)
+	pc.insert(key, period, contents)
 	return nil
 }
 
 // insert is the internal function that adds a new red node to the tree. Note this function does not lock the mutex,
 // that must be done by the caller.
-func (pc *PeriodCollection) insert(period Period, key, contents interface{}) {
+func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) {
 	inserted := newNode(period, key, contents, red)
 	pc.nodes[key] = inserted
 	if pc.root == nil || pc.root.leaf {
@@ -210,16 +210,15 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 }
 
 // Delete removes the period and its associated contents with the provided key. If no period with the provided
-// key exists, an error is returned.
-func (pc *PeriodCollection) Delete(key interface{}) error {
+// key exists, this function is a no-op.
+func (pc *PeriodCollection) Delete(key interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	node, ok := pc.nodes[key]
 	if !ok {
-		return fmt.Errorf("could not delete node with key %v: key does not exist", key)
+		return
 	}
 	pc.delete(node)
-	return nil
 }
 
 func (pc *PeriodCollection) delete(n *node) {
@@ -357,24 +356,24 @@ func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 	}
 }
 
-// Update the period and associated contents with the given key. An error is returned if no period with the given
-// key exists.
-func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) error {
+// Update the period and associated contents with the given key. If no period with the given key exists,
+// a new period is inserted.
+func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	oldNode, ok := pc.nodes[key]
 	if !ok {
-		return fmt.Errorf("could not update node with key %v: key does not exist", key)
+		pc.insert(key, newPeriod, newContents)
+		return
 	}
 	if oldNode.period.Equals(newPeriod) {
 		// if the period hasn't changed, just swap the contents
 		oldNode.contents = newContents
-		return nil
+		return
 	}
 	// if the period has changed, delete the old node and insert a new one
 	pc.delete(oldNode)
-	pc.insert(newPeriod, key, newContents)
-	return nil
+	pc.insert(key, newPeriod, newContents)
 }
 
 // ContainsTime returns whether there is any stored period that contains the supplied time.
@@ -492,7 +491,7 @@ func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, vi
 // DeleteOnCondition will delete all nodes in the collection with contents that satisfy the given condition
 // Note that this method can be time consuming for large trees and multiple deletions as it may involve multiple
 // tree rotations.
-func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{}) bool) error {
+func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{}) bool) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	for _, node := range pc.nodes {
@@ -500,5 +499,4 @@ func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{
 			pc.delete(node)
 		}
 	}
-	return nil
 }
