@@ -210,16 +210,15 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 }
 
 // Delete removes the period and its associated contents with the provided key. If no period with the provided
-// key exists, an error is returned.
-func (pc *PeriodCollection) Delete(key interface{}) error {
+// key exists, this function is a no-op.
+func (pc *PeriodCollection) Delete(key interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	node, ok := pc.nodes[key]
 	if !ok {
-		return fmt.Errorf("could not delete node with key %v: key does not exist", key)
+		return
 	}
 	pc.delete(node)
-	return nil
 }
 
 func (pc *PeriodCollection) delete(n *node) {
@@ -357,24 +356,25 @@ func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 	}
 }
 
-// Update the period and associated contents with the given key. An error is returned if no period with the given
-// key exists.
-func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) error {
+// Update the period and associated contents with the given key. If no period with the given key exists,
+// a new period is inserted.
+func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	oldNode, ok := pc.nodes[key]
 	if !ok {
-		return fmt.Errorf("could not update node with key %v: key does not exist", key)
+		pc.insert(newPeriod, key, newContents)
+		return
 	}
 	if oldNode.period.Equals(newPeriod) {
 		// if the period hasn't changed, just swap the contents
 		oldNode.contents = newContents
-		return nil
+		return
 	}
 	// if the period has changed, delete the old node and insert a new one
 	pc.delete(oldNode)
 	pc.insert(newPeriod, key, newContents)
-	return nil
+	return
 }
 
 // ContainsTime returns whether there is any stored period that contains the supplied time.
@@ -492,7 +492,7 @@ func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, vi
 // DeleteOnCondition will delete all nodes in the collection with contents that satisfy the given condition
 // Note that this method can be time consuming for large trees and multiple deletions as it may involve multiple
 // tree rotations.
-func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{}) bool) error {
+func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{}) bool) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	for _, node := range pc.nodes {
@@ -500,5 +500,4 @@ func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{
 			pc.delete(node)
 		}
 	}
-	return nil
 }

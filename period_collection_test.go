@@ -15,7 +15,6 @@
 package periodic
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -504,16 +503,13 @@ func TestPeriodCollection_Delete(t *testing.T) {
 	tests := []struct {
 		name   string
 		key    interface{}
-		result error
 	}{
 		{
 			"deleting a node should also remove it from the external map",
 			1,
-			nil,
 		}, {
-			"deleting a key with no node returns an error",
+			"deleting a key with no node is a no-op",
 			2,
-			fmt.Errorf("could not delete node with key %v: key does not exist", 2),
 		},
 	}
 	for _, test := range tests {
@@ -523,8 +519,7 @@ func TestPeriodCollection_Delete(t *testing.T) {
 				root:  n,
 				nodes: map[interface{}]*node{1: n},
 			}
-			err := pc.Delete(test.key)
-			assert.Equal(t, test.result, err)
+			pc.Delete(test.key)
 		})
 	}
 }
@@ -1716,18 +1711,19 @@ func TestPeriodCollection_Update(t *testing.T) {
 		updateKey   int
 		newContents int
 		newPeriod   Period
-		validate    func(t *testing.T, pc *PeriodCollection, err error)
+		validate    func(t *testing.T, pc *PeriodCollection)
 	}{
 		{
-			"updating a key that doesn't exist returns an error",
+			"updating a key that doesn't exist inserts a new period",
 			func() *PeriodCollection { return NewPeriodCollection() },
 			1,
 			1,
 			Period{},
-			func(t *testing.T, pc *PeriodCollection, err error) {
-				assert.Error(t, err)
-				assert.Len(t, pc.nodes, 0)
-				assert.True(t, pc.root.leaf)
+			func(t *testing.T, pc *PeriodCollection) {
+				assert.Len(t, pc.nodes, 1)
+				assert.Equal(t, 1, pc.root.key)
+				assert.True(t, pc.root.left.leaf)
+				assert.True(t, pc.root.right.leaf)
 			},
 		}, {
 			"updating contents without updating the period swaps contents",
@@ -1744,8 +1740,7 @@ func TestPeriodCollection_Update(t *testing.T) {
 			1,
 			2,
 			Period{},
-			func(t *testing.T, pc *PeriodCollection, err error) {
-				assert.NoError(t, err)
+			func(t *testing.T, pc *PeriodCollection) {
 				l, ok := pc.nodes[1]
 				require.True(t, ok)
 				require.Equal(t, l, pc.root.left)
@@ -1767,9 +1762,8 @@ func TestPeriodCollection_Update(t *testing.T) {
 			1,
 			2,
 			NewPeriod(time.Unix(20, 0), time.Unix(30, 0)),
-			func(t *testing.T, pc *PeriodCollection, err error) {
+			func(t *testing.T, pc *PeriodCollection) {
 				// the node should move from the the parent's left to right
-				assert.NoError(t, err)
 				r, ok := pc.nodes[1]
 				require.True(t, ok)
 				require.Equal(t, r, pc.root.right)
@@ -1789,8 +1783,7 @@ func TestPeriodCollection_Update(t *testing.T) {
 			0,
 			1,
 			NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
-			func(t *testing.T, pc *PeriodCollection, err error) {
-				assert.NoError(t, err)
+			func(t *testing.T, pc *PeriodCollection) {
 				root, ok := pc.nodes[0]
 				require.True(t, ok)
 				assert.Equal(t, root, pc.root)
@@ -1802,7 +1795,8 @@ func TestPeriodCollection_Update(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pc := test.setup()
-			test.validate(t, pc, pc.Update(test.updateKey, test.newPeriod, test.newContents))
+			pc.Update(test.updateKey, test.newPeriod, test.newContents)
+			test.validate(t, pc)
 		})
 	}
 }
@@ -2047,15 +2041,14 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 	tests := []struct {
 		name      string
 		condition func(i interface{}) bool
-		validate  func(t *testing.T, pc *PeriodCollection, err error)
+		validate  func(t *testing.T, pc *PeriodCollection)
 	}{
 		{
 			"delete all nodes",
 			func(i interface{}) bool {
 				return true
 			},
-			func(t *testing.T, pc *PeriodCollection, err error) {
-				assert.NoError(t, err)
+			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, 0, len(pc.nodes))
 			},
 		}, {
@@ -2063,8 +2056,7 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 			func(i interface{}) bool {
 				return false
 			},
-			func(t *testing.T, pc *PeriodCollection, err error) {
-				assert.NoError(t, err)
+			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, 6, len(pc.nodes))
 			},
 		}, {
@@ -2072,8 +2064,7 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 			func(i interface{}) bool {
 				return i.(int)%2 == 0
 			},
-			func(t *testing.T, pc *PeriodCollection, err error) {
-				assert.NoError(t, err)
+			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, 3, len(pc.nodes))
 				assert.True(t, pc.ContainsKey(1))
 				assert.True(t, pc.ContainsKey(3))
@@ -2084,7 +2075,8 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pc := setupTree()
-			test.validate(t, pc, pc.DeleteOnCondition(test.condition))
+			pc.DeleteOnCondition(test.condition)
+			test.validate(t, pc)
 		})
 	}
 }
