@@ -63,19 +63,19 @@ func NewPeriodCollection() *PeriodCollection {
 // Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
 // when inserting a new period. contents is an arbitrary object associated with the period inserted. If a period
 // already exists with the given key, an error will be returned.
-func (pc *PeriodCollection) Insert(period Period, key, contents interface{}) error {
+func (pc *PeriodCollection) Insert(key interface{}, period Period, contents interface{}) error {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	if _, ok := pc.nodes[key]; ok {
 		return fmt.Errorf("period with key %v already exists", key)
 	}
-	pc.insert(period, key, contents)
+	pc.insert(key, period, contents)
 	return nil
 }
 
 // insert is the internal function that adds a new red node to the tree. Note this function does not lock the mutex,
 // that must be done by the caller.
-func (pc *PeriodCollection) insert(period Period, key, contents interface{}) {
+func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) {
 	inserted := newNode(period, key, contents, red)
 	pc.nodes[key] = inserted
 	if pc.root == nil || pc.root.leaf {
@@ -363,7 +363,7 @@ func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContent
 	defer pc.mutex.Unlock()
 	oldNode, ok := pc.nodes[key]
 	if !ok {
-		pc.insert(newPeriod, key, newContents)
+		pc.insert(key, newPeriod, newContents)
 		return
 	}
 	if oldNode.period.Equals(newPeriod) {
@@ -373,7 +373,7 @@ func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContent
 	}
 	// if the period has changed, delete the old node and insert a new one
 	pc.delete(oldNode)
-	pc.insert(newPeriod, key, newContents)
+	pc.insert(key, newPeriod, newContents)
 }
 
 // ContainsTime returns whether there is any stored period that contains the supplied time.

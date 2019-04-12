@@ -261,7 +261,7 @@ func TestPeriodCollection_Insert(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			pc := test.setupTree()
 			for _, i := range test.insertions {
-				err := pc.Insert(i.period, i.key, nil)
+				err := pc.Insert(i.key, i.period, nil)
 				if i.expectErr {
 					assert.Error(t, err)
 				} else {
@@ -1525,7 +1525,7 @@ func TestPeriodCollection_ContainsTime(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			pc := NewPeriodCollection()
 			for i, p := range test.periods {
-				require.NoError(t, pc.Insert(p, i, nil))
+				require.NoError(t, pc.Insert(i, p, nil))
 			}
 			assert.Equal(t, test.expectedOutcome, pc.ContainsTime(test.query))
 		})
@@ -1548,7 +1548,7 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 	}
 	pc := NewPeriodCollection()
 	for i, n := range nodes {
-		require.NoError(t, pc.Insert(n.period, i, n.contents))
+		require.NoError(t, pc.Insert(i, n.period, n.contents))
 	}
 	tests := []struct {
 		name             string
@@ -1821,7 +1821,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				}
 				pc := NewPeriodCollection()
 				for i, p := range periods {
-					require.NoError(t, pc.Insert(p, i, nil))
+					require.NoError(t, pc.Insert(i, p, nil))
 				}
 				return pc
 			},
@@ -1837,7 +1837,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				}
 				pc := NewPeriodCollection()
 				for i, p := range periods {
-					require.NoError(t, pc.Insert(p, i, nil))
+					require.NoError(t, pc.Insert(i, p, nil))
 				}
 				return pc
 			},
@@ -1849,10 +1849,11 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				pc := NewPeriodCollection()
 				require.NoError(
 					t, pc.Insert(
+						1,
 						NewPeriod(
 							time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC),
 							time.Date(2018, 12, 10, 0, 0, 0, 0, time.UTC),
-						), 1, nil))
+						), nil))
 				return pc
 			},
 			NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 2, 0, 0, 0, 0, time.UTC)),
@@ -1872,7 +1873,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				}
 				pc := NewPeriodCollection()
 				for i, p := range periods {
-					require.NoError(t, pc.Insert(p, i, nil))
+					require.NoError(t, pc.Insert(i, p, nil))
 				}
 				return pc
 			},
@@ -1888,7 +1889,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				}
 				pc := NewPeriodCollection()
 				for i, p := range periods {
-					require.NoError(t, pc.Insert(p, i, nil))
+					require.NoError(t, pc.Insert(i, p, nil))
 				}
 				return pc
 			},
@@ -1904,7 +1905,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				}
 				pc := NewPeriodCollection()
 				for i, p := range periods {
-					require.NoError(t, pc.Insert(p, i, nil))
+					require.NoError(t, pc.Insert(i, p, nil))
 				}
 				return pc
 			},
@@ -1920,7 +1921,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				}
 				pc := NewPeriodCollection()
 				for i, p := range periods {
-					require.NoError(t, pc.Insert(p, i, nil))
+					require.NoError(t, pc.Insert(i, p, nil))
 				}
 				return pc
 			},
@@ -2034,7 +2035,7 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 		}
 		pc := NewPeriodCollection()
 		for _, n := range nodes {
-			require.NoError(t, pc.Insert(n.period, n.contents, n.contents))
+			require.NoError(t, pc.Insert(n.contents, n.period, n.contents))
 		}
 		return pc
 	}
