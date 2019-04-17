@@ -60,22 +60,36 @@ func NewPeriodCollection() *PeriodCollection {
 	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{leaf: true}}
 }
 
+// Transaction allows multiple constructive or destructive operations to be performed on the
+// PeriodCollection within the context of a single write lock. Transaction can be used
+// when multiple inserts, updates, or deletes are required without leaving the PeriodCollection
+// with inconsistent data.
+type Transaction struct {
+	pc        *PeriodCollection
+	committed bool
+}
+
 // Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
 // when inserting a new period. contents is an arbitrary object associated with the period inserted. If a period
 // already exists with the given key, an error will be returned.
 func (pc *PeriodCollection) Insert(key interface{}, period Period, contents interface{}) error {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
+	return pc.insert(key, period, contents)
+}
+
+// insert is the internal function that verifies that a new node can be inserted into the tree and then inserts
+// the new node.
+func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) error {
 	if _, ok := pc.nodes[key]; ok {
 		return fmt.Errorf("period with key %v already exists", key)
 	}
-	pc.insert(key, period, contents)
+	pc.performInsert(key, period, contents)
 	return nil
 }
 
-// insert is the internal function that adds a new red node to the tree. Note this function does not lock the mutex,
-// that must be done by the caller.
-func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) {
+// performInsert adds a new red node to the tree.
+func (pc *PeriodCollection) performInsert(key interface{}, period Period, contents interface{}) {
 	inserted := newNode(period, key, contents, red)
 	pc.nodes[key] = inserted
 	if pc.root == nil || pc.root.leaf {
@@ -214,14 +228,18 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 func (pc *PeriodCollection) Delete(key interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
+	pc.delete(key)
+}
+
+func (pc *PeriodCollection) delete(key interface{}) {
 	node, ok := pc.nodes[key]
 	if !ok {
 		return
 	}
-	pc.delete(node)
+	pc.deleteNode(node)
 }
 
-func (pc *PeriodCollection) delete(n *node) {
+func (pc *PeriodCollection) deleteNode(n *node) {
 	// y is the node that is going to be deleted, z is the node that will be moved into y's place
 	var y *node
 	var z *node
@@ -361,9 +379,14 @@ func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
+	pc.update(key, newPeriod, newContents)
+}
+
+// update is the internal function that performs the update on the tree.
+func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContents interface{}) {
 	oldNode, ok := pc.nodes[key]
 	if !ok {
-		pc.insert(key, newPeriod, newContents)
+		pc.performInsert(key, newPeriod, newContents)
 		return
 	}
 	if oldNode.period.Equals(newPeriod) {
@@ -372,8 +395,8 @@ func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContent
 		return
 	}
 	// if the period has changed, delete the old node and insert a new one
-	pc.delete(oldNode)
-	pc.insert(key, newPeriod, newContents)
+	pc.deleteNode(oldNode)
+	pc.performInsert(key, newPeriod, newContents)
 }
 
 // ContainsTime returns whether there is any stored period that contains the supplied time.
@@ -496,7 +519,53 @@ func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{
 	defer pc.mutex.Unlock()
 	for _, node := range pc.nodes {
 		if condition(node.contents) {
-			pc.delete(node)
+			pc.deleteNode(node)
 		}
 	}
+}
+
+// BeginTransaction puts the PeriodCollection in a state where multiple constructive or destructive
+// operations can be performed before readers are allowed to have access again. BeginTransaction
+// returns a Transaction object which can be used to perform inserts, deletions, and updates. Its
+// API is synonymous with the Insert, Delete, and Update methods on PeriodCollection itself.
+// When all desired changes are made, Commit needs to be called on the Transaction. A Transaction
+// may not be used after it has been committed. Calling any method on a Transaction after its been
+// committed will result in a panic.
+func (pc *PeriodCollection) BeginTransaction() Transaction {
+	pc.mutex.Lock()
+	return Transaction{pc: pc, committed: false}
+}
+
+// Commit finalizes the updates made to the PeriodCollection since the time BeginTransaction
+// was called.
+func (t *Transaction) Commit() {
+	if t.committed {
+		panic("commit called on committed transaction")
+	}
+	t.committed = true
+	t.pc.mutex.Unlock()
+}
+
+// Insert adds a new period to the PeriodCollection.
+func (t Transaction) Insert(key interface{}, period Period, contents interface{}) error {
+	if t.committed {
+		panic("insert called on committed transaction")
+	}
+	return t.pc.insert(key, period, contents)
+}
+
+// Delete removes a period from the PeriodCollection.
+func (t Transaction) Delete(key interface{}) {
+	if t.committed {
+		panic("delete called on transaction after committed")
+	}
+	t.pc.delete(key)
+}
+
+// Update a period and its contents from the PeriodCollection.
+func (t Transaction) Update(key interface{}, newPeriod Period, newContents interface{}) {
+	if t.committed {
+		panic("update called on committed transaction")
+	}
+	t.pc.update(key, newPeriod, newContents)
 }
