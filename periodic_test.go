@@ -84,6 +84,26 @@ func TestPeriod_Intersects(t *testing.T) {
 			false,
 			p,
 			NewPeriod(p.End.Add(time.Second), time.Time{}),
+		}, {
+			"True when end is equal to other start and other end is unbounded",
+			true,
+			p,
+			NewPeriod(p.End, time.Time{}),
+		}, {
+			"True when start is equal to other end and other start is unbounded",
+			true,
+			p,
+			NewPeriod(time.Time{}, p.Start),
+		}, {
+			"True when start is equal to other end and both periods are bounded",
+			true,
+			p,
+			NewPeriod(p.Start.Add(-time.Hour), p.Start),
+		}, {
+			"True when end is equal to other start and both periods are bounded",
+			true,
+			p,
+			NewPeriod(p.End, p.End.Add(time.Hour)),
 		},
 	}
 	for _, test := range tests {

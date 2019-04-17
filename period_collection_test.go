@@ -1582,7 +1582,7 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 			func() *PeriodCollection {
 				return pc
 			},
-			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
+			NewPeriod(time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC)),
 			[]interface{}{"a"},
 		}, {
 			"2018-12-05 12:00 - 2018-12-05 14:00 does not intersect",

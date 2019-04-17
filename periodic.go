@@ -70,13 +70,15 @@ func NewPeriod(start, end time.Time) Period {
 // the time period is unbounded on the end.
 func (p Period) Intersects(other Period) bool {
 	if p.End.IsZero() && !other.End.IsZero() {
-		return p.Start.Before(other.End)
+		return p.Start.Before(other.End) || p.Start.Equal(p.End)
 	}
 	if !p.End.IsZero() && other.End.IsZero() {
-		return other.Start.Before(p.End)
+		return other.Start.Before(p.End) || other.Start.Equal(p.End)
 	}
 	// Calculate max(starts) < min(ends)
-	return MaxTime(p.Start, other.Start).Before(MinTime(p.End, other.End))
+	maxStart := MaxTime(p.Start, other.Start)
+	minEnd := MinTime(p.End, other.End)
+	return maxStart.Before(minEnd) || maxStart.Equal(minEnd)
 }
 
 // Contains returns true if the other time period is contained within the Period
