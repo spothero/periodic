@@ -2082,129 +2082,62 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 	}
 }
 
-func TestPeriodCollection_BeginTransaction(t *testing.T) {
+func TestPeriodCollection_PrepareUpdate(t *testing.T) {
 	pc := NewPeriodCollection()
-	transaction := pc.BeginTransaction()
-	assert.Equal(t, pc, transaction.pc)
-	assert.False(t, transaction.committed)
-	pc.mutex.Unlock()
+	assert.Equal(
+		t,
+		Update{
+			key:         1,
+			newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+			newContents: 1,
+			pc:          pc,
+		},
+		pc.PrepareUpdate(1, Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)}, 1),
+	)
 }
 
-func TestTransaction_Insert(t *testing.T) {
+func TestPeriodCollection_Execute(t *testing.T) {
 	pc := NewPeriodCollection()
-	tests := []struct {
-		name        string
-		transaction Transaction
-		expectPanic bool
-	}{
-		{
-			"node is inserted within a transaction",
-			Transaction{pc: pc},
-			false,
-		}, {
-			"insert called on a committed transaction panics",
-			Transaction{pc: pc, committed: true},
-			true,
-		},
+	u1 := Update{
+		key:         1,
+		newContents: 1,
+		newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+		pc:          pc,
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.expectPanic {
-				assert.Panics(t, func() {
-					err := test.transaction.Insert(1, Period{}, 1)
-					assert.NoError(t, err)
-				})
-			} else {
-				err := test.transaction.Insert(1, Period{}, 1)
-				assert.NoError(t, err)
-				assert.Contains(t, test.transaction.pc.nodes, 1)
-			}
-		})
+	u2 := Update{
+		key:         2,
+		newContents: 2,
+		newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+		pc:          pc,
 	}
+	d1 := Delete{key: 1, pc: pc}
+	pc.Execute(u1, u2, d1)
+	assert.Contains(t, pc.nodes, 2)
+	assert.NotContains(t, pc.nodes, 1)
 }
 
-func TestTransaction_Delete(t *testing.T) {
+func TestPeriodCollection_PrepareDelete(t *testing.T) {
 	pc := NewPeriodCollection()
-	require.NoError(t, pc.insert(1, Period{}, 1))
-	tests := []struct {
-		name        string
-		transaction Transaction
-		expectPanic bool
-	}{
-		{
-			"node is deleted within a transaction",
-			Transaction{pc: pc},
-			false,
-		}, {
-			"delete called on a committed transaction panics",
-			Transaction{pc: pc, committed: true},
-			true,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.expectPanic {
-				assert.Panics(t, func() { test.transaction.Delete(1) })
-			} else {
-				test.transaction.Delete(1)
-				assert.NotContains(t, test.transaction.pc.nodes, 1)
-			}
-		})
-	}
+	assert.Equal(t, Delete{key: 1, pc: pc}, pc.PrepareDelete(1))
 }
 
-func TestTransaction_Update(t *testing.T) {
+func TestUpdate_execute(t *testing.T) {
 	pc := NewPeriodCollection()
-	tests := []struct {
-		name        string
-		transaction Transaction
-		expectPanic bool
-	}{
-		{
-			"node is updated within a transaction",
-			Transaction{pc: pc},
-			false,
-		}, {
-			"update called on a committed transaction panics",
-			Transaction{pc: pc, committed: true},
-			true,
-		},
+	u := Update{
+		key:         1,
+		newContents: 1,
+		newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+		pc:          pc,
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.expectPanic {
-				assert.Panics(t, func() { test.transaction.Update(1, Period{}, 1) })
-			} else {
-				test.transaction.Update(1, Period{}, 1)
-				assert.Contains(t, test.transaction.pc.nodes, 1)
-			}
-		})
-	}
+	u.execute()
+	assert.Contains(t, pc.nodes, 1)
 }
 
-func TestTransaction_Commit(t *testing.T) {
-	tests := []struct {
-		name        string
-		transaction Transaction
-		expectPanic bool
-	}{
-		{
-			"commit marks a transaction committed",
-			NewPeriodCollection().BeginTransaction(),
-			false,
-		}, {
-			"commit called on a committed transaction panics",
-			Transaction{committed: true},
-			true,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.expectPanic {
-				assert.Panics(t, func() { test.transaction.Commit() })
-			} else {
-				test.transaction.Commit()
-			}
-		})
-	}
+func TestDelete_execute(t *testing.T) {
+	pc := NewPeriodCollection()
+	pc.update(1, Period{}, 1)
+	require.Contains(t, pc.nodes, 1)
+	d := Delete{key: 1, pc: pc}
+	d.execute()
+	assert.NotContains(t, pc.nodes, 1)
 }

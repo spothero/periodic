@@ -60,13 +60,23 @@ func NewPeriodCollection() *PeriodCollection {
 	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{leaf: true}}
 }
 
-// Transaction allows multiple constructive or destructive operations to be performed on the
-// PeriodCollection within the context of a single write lock. Transaction can be used
-// when multiple inserts, updates, or deletes are required without leaving the PeriodCollection
-// with inconsistent data.
-type Transaction struct {
-	pc        *PeriodCollection
-	committed bool
+// Command is an interface that allows multiple operations on the PeriodCollection to be
+// queued up and executed in order within the context of one write lock.
+type Command interface {
+	execute()
+}
+
+// Update is a command that runs an update on the PeriodCollection
+type Update struct {
+	key, newContents interface{}
+	newPeriod        Period
+	pc               *PeriodCollection
+}
+
+// Delete is a command that runs a deletion on the PeriodCollection
+type Delete struct {
+	key interface{}
+	pc  *PeriodCollection
 }
 
 // Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
@@ -231,6 +241,7 @@ func (pc *PeriodCollection) Delete(key interface{}) {
 	pc.delete(key)
 }
 
+// delete is the internal method that determines if a deletion is necessary, and if so, executes the deletion
 func (pc *PeriodCollection) delete(key interface{}) {
 	node, ok := pc.nodes[key]
 	if !ok {
@@ -239,6 +250,7 @@ func (pc *PeriodCollection) delete(key interface{}) {
 	pc.deleteNode(node)
 }
 
+// deleteNode removes the specified node from the tree
 func (pc *PeriodCollection) deleteNode(n *node) {
 	// y is the node that is going to be deleted, z is the node that will be moved into y's place
 	var y *node
@@ -524,48 +536,37 @@ func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{
 	}
 }
 
-// BeginTransaction puts the PeriodCollection in a state where multiple constructive or destructive
-// operations can be performed before readers are allowed to have access again. BeginTransaction
-// returns a Transaction object which can be used to perform inserts, deletions, and updates. Its
-// API is synonymous with the Insert, Delete, and Update methods on PeriodCollection itself.
-// When all desired changes are made, Commit needs to be called on the Transaction. A Transaction
-// may not be used after it has been committed. Calling any method on a Transaction after its been
-// committed will result in a panic.
-func (pc *PeriodCollection) BeginTransaction() Transaction {
+// PrepareUpdate returns an Update command that can be later be used for bulk actions on the collection
+func (pc *PeriodCollection) PrepareUpdate(key interface{}, newPeriod Period, newContents interface{}) Update {
+	return Update{
+		key:         key,
+		newContents: newContents,
+		newPeriod:   newPeriod,
+		pc:          pc,
+	}
+}
+
+// PrepareDelete returns a Delete command that can be later used for bulk actions on the collection
+func (pc *PeriodCollection) PrepareDelete(key interface{}) Delete {
+	return Delete{key: key, pc: pc}
+}
+
+// Execute takes a list of commands and runs all of them on the PeriodCollection within the context
+// of one write lock.
+func (pc *PeriodCollection) Execute(commands ...Command) {
 	pc.mutex.Lock()
-	return Transaction{pc: pc, committed: false}
+	defer pc.mutex.Unlock()
+	for _, command := range commands {
+		command.execute()
+	}
 }
 
-// Commit finalizes the updates made to the PeriodCollection since the time BeginTransaction
-// was called.
-func (t *Transaction) Commit() {
-	if t.committed {
-		panic("commit called on committed transaction")
-	}
-	t.committed = true
-	t.pc.mutex.Unlock()
+// execute the update on the tree
+func (u Update) execute() {
+	u.pc.update(u.key, u.newPeriod, u.newContents)
 }
 
-// Insert adds a new period to the PeriodCollection.
-func (t Transaction) Insert(key interface{}, period Period, contents interface{}) error {
-	if t.committed {
-		panic("insert called on committed transaction")
-	}
-	return t.pc.insert(key, period, contents)
-}
-
-// Delete removes a period from the PeriodCollection.
-func (t Transaction) Delete(key interface{}) {
-	if t.committed {
-		panic("delete called on transaction after committed")
-	}
-	t.pc.delete(key)
-}
-
-// Update a period and its contents from the PeriodCollection.
-func (t Transaction) Update(key interface{}, newPeriod Period, newContents interface{}) {
-	if t.committed {
-		panic("update called on committed transaction")
-	}
-	t.pc.update(key, newPeriod, newContents)
+// execute the delete on the tree
+func (d Delete) execute() {
+	d.pc.delete(d.key)
 }
