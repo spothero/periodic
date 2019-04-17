@@ -524,7 +524,7 @@ func TestPeriodCollection_Delete(t *testing.T) {
 	}
 }
 
-func TestPeriodCollection_delete(t *testing.T) {
+func TestPeriodCollection_deleteNode(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupTree func() (*PeriodCollection, *node)
@@ -1005,7 +1005,7 @@ func TestPeriodCollection_delete(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pc, nodeToDelete := test.setupTree()
-			pc.delete(nodeToDelete)
+			pc.deleteNode(nodeToDelete)
 			test.validate(t, pc)
 		})
 	}
@@ -2080,4 +2080,64 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 			test.validate(t, pc)
 		})
 	}
+}
+
+func TestPeriodCollection_PrepareUpdate(t *testing.T) {
+	pc := NewPeriodCollection()
+	assert.Equal(
+		t,
+		Update{
+			key:         1,
+			newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+			newContents: 1,
+			pc:          pc,
+		},
+		pc.PrepareUpdate(1, Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)}, 1),
+	)
+}
+
+func TestPeriodCollection_Execute(t *testing.T) {
+	pc := NewPeriodCollection()
+	u1 := Update{
+		key:         1,
+		newContents: 1,
+		newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+		pc:          pc,
+	}
+	u2 := Update{
+		key:         2,
+		newContents: 2,
+		newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+		pc:          pc,
+	}
+	d1 := Delete{key: 1, pc: pc}
+	pc.Execute(u1, u2, d1)
+	assert.Contains(t, pc.nodes, 2)
+	assert.NotContains(t, pc.nodes, 1)
+}
+
+func TestPeriodCollection_PrepareDelete(t *testing.T) {
+	pc := NewPeriodCollection()
+	assert.Equal(t, Delete{key: 1, pc: pc}, pc.PrepareDelete(1))
+}
+
+func TestUpdate_execute(t *testing.T) {
+	pc := NewPeriodCollection()
+	u := Update{
+		key:         1,
+		newContents: 1,
+		newPeriod:   Period{Start: time.Unix(1, 0), End: time.Unix(2, 0)},
+		pc:          pc,
+	}
+	u.execute()
+	assert.Contains(t, pc.nodes, 1)
+}
+
+func TestDelete_execute(t *testing.T) {
+	pc := NewPeriodCollection()
+	pc.update(1, Period{}, 1)
+	require.Contains(t, pc.nodes, 1)
+	d := Delete{key: 1, pc: pc}
+	d.execute()
+	assert.NotContains(t, pc.nodes, 1)
 }

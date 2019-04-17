@@ -60,6 +60,25 @@ func NewPeriodCollection() *PeriodCollection {
 	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{leaf: true}}
 }
 
+// Command is an interface that allows multiple operations on the PeriodCollection to be
+// queued up and executed in order within the context of one write lock.
+type Command interface {
+	execute()
+}
+
+// Update is a command that runs an update on the PeriodCollection
+type Update struct {
+	key, newContents interface{}
+	newPeriod        Period
+	pc               *PeriodCollection
+}
+
+// Delete is a command that runs a deletion on the PeriodCollection
+type Delete struct {
+	key interface{}
+	pc  *PeriodCollection
+}
+
 // Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
 // when inserting a new period. contents is an arbitrary object associated with the period inserted. If a period
 // already exists with the given key, an error will be returned.
@@ -214,14 +233,20 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 func (pc *PeriodCollection) Delete(key interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
+	pc.delete(key)
+}
+
+// delete is the internal method that determines if a deletion is necessary, and if so, executes the deletion
+func (pc *PeriodCollection) delete(key interface{}) {
 	node, ok := pc.nodes[key]
 	if !ok {
 		return
 	}
-	pc.delete(node)
+	pc.deleteNode(node)
 }
 
-func (pc *PeriodCollection) delete(n *node) {
+// deleteNode removes the specified node from the tree
+func (pc *PeriodCollection) deleteNode(n *node) {
 	// y is the node that is going to be deleted, z is the node that will be moved into y's place
 	var y *node
 	var z *node
@@ -361,6 +386,11 @@ func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
+	pc.update(key, newPeriod, newContents)
+}
+
+// update is the internal function that performs the update on the tree.
+func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContents interface{}) {
 	oldNode, ok := pc.nodes[key]
 	if !ok {
 		pc.insert(key, newPeriod, newContents)
@@ -372,7 +402,7 @@ func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContent
 		return
 	}
 	// if the period has changed, delete the old node and insert a new one
-	pc.delete(oldNode)
+	pc.deleteNode(oldNode)
 	pc.insert(key, newPeriod, newContents)
 }
 
@@ -496,7 +526,42 @@ func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{
 	defer pc.mutex.Unlock()
 	for _, node := range pc.nodes {
 		if condition(node.contents) {
-			pc.delete(node)
+			pc.deleteNode(node)
 		}
 	}
+}
+
+// PrepareUpdate returns an Update command that can be later be used for bulk actions on the collection
+func (pc *PeriodCollection) PrepareUpdate(key interface{}, newPeriod Period, newContents interface{}) Update {
+	return Update{
+		key:         key,
+		newContents: newContents,
+		newPeriod:   newPeriod,
+		pc:          pc,
+	}
+}
+
+// PrepareDelete returns a Delete command that can be later used for bulk actions on the collection
+func (pc *PeriodCollection) PrepareDelete(key interface{}) Delete {
+	return Delete{key: key, pc: pc}
+}
+
+// Execute takes a list of commands and runs all of them on the PeriodCollection within the context
+// of one write lock.
+func (pc *PeriodCollection) Execute(commands ...Command) {
+	pc.mutex.Lock()
+	defer pc.mutex.Unlock()
+	for _, command := range commands {
+		command.execute()
+	}
+}
+
+// execute the update on the tree
+func (u Update) execute() {
+	u.pc.update(u.key, u.newPeriod, u.newContents)
+}
+
+// execute the delete on the tree
+func (d Delete) execute() {
+	d.pc.delete(d.key)
 }
