@@ -85,21 +85,16 @@ type Delete struct {
 func (pc *PeriodCollection) Insert(key interface{}, period Period, contents interface{}) error {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
-	return pc.insert(key, period, contents)
-}
-
-// insert is the internal function that verifies that a new node can be inserted into the tree and then inserts
-// the new node.
-func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) error {
 	if _, ok := pc.nodes[key]; ok {
 		return fmt.Errorf("period with key %v already exists", key)
 	}
-	pc.performInsert(key, period, contents)
+	pc.insert(key, period, contents)
 	return nil
 }
 
-// performInsert adds a new red node to the tree.
-func (pc *PeriodCollection) performInsert(key interface{}, period Period, contents interface{}) {
+// insert is the internal function that adds a new red node to the tree. Note this function does not lock the mutex,
+// that must be done by the caller.
+func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) {
 	inserted := newNode(period, key, contents, red)
 	pc.nodes[key] = inserted
 	if pc.root == nil || pc.root.leaf {
@@ -398,7 +393,7 @@ func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContent
 func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContents interface{}) {
 	oldNode, ok := pc.nodes[key]
 	if !ok {
-		pc.performInsert(key, newPeriod, newContents)
+		pc.insert(key, newPeriod, newContents)
 		return
 	}
 	if oldNode.period.Equals(newPeriod) {
@@ -408,7 +403,7 @@ func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContent
 	}
 	// if the period has changed, delete the old node and insert a new one
 	pc.deleteNode(oldNode)
-	pc.performInsert(key, newPeriod, newContents)
+	pc.insert(key, newPeriod, newContents)
 }
 
 // ContainsTime returns whether there is any stored period that contains the supplied time.
