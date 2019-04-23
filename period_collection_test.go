@@ -2141,3 +2141,36 @@ func TestDelete_execute(t *testing.T) {
 	d.execute()
 	assert.NotContains(t, pc.nodes, 1)
 }
+
+func TestPeriodCollection_ContentsOfKey(t *testing.T) {
+	pc := PeriodCollection{nodes: map[interface{}]*node{1: {contents: "contents"}}}
+	tests := []struct {
+		name             string
+		key              interface{}
+		expectedContents interface{}
+		expectErr        bool
+	}{
+		{
+			"should return contents of key",
+			1,
+			"contents",
+			false,
+		}, {
+			"should return error when void of key",
+			2,
+			nil,
+			true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			contents, err := pc.ContentsOfKey(test.key)
+			if test.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedContents, contents)
+			}
+		})
+	}
+}

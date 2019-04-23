@@ -518,6 +518,14 @@ func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, vi
 	}
 }
 
+func (pc *PeriodCollection) ContentsOfKey(key interface{}) (interface{}, error) {
+	node, ok := pc.nodes[key]
+	if !ok {
+		return nil, fmt.Errorf("key %v does not exist", key)
+	}
+	return node.contents, nil
+}
+
 // DeleteOnCondition will delete all nodes in the collection with contents that satisfy the given condition
 // Note that this method can be time consuming for large trees and multiple deletions as it may involve multiple
 // tree rotations.
