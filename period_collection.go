@@ -518,6 +518,18 @@ func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, vi
 	}
 }
 
+// ContentsOfKey returns the contents stored at the provided key in the collection. This method
+// runs in O(1) time and can be used if the key is known but not the period.
+func (pc *PeriodCollection) ContentsOfKey(key interface{}) (interface{}, error) {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	node, ok := pc.nodes[key]
+	if !ok {
+		return nil, fmt.Errorf("key %v does not exist", key)
+	}
+	return node.contents, nil
+}
+
 // DeleteOnCondition will delete all nodes in the collection with contents that satisfy the given condition
 // Note that this method can be time consuming for large trees and multiple deletions as it may involve multiple
 // tree rotations.
