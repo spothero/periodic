@@ -518,6 +518,8 @@ func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, vi
 	}
 }
 
+// ContentsOfKey returns the contents stored at the provided key in the collection. This method
+// runs in O(1) time and can be used if the key is known but not the period.
 func (pc *PeriodCollection) ContentsOfKey(key interface{}) (interface{}, error) {
 	node, ok := pc.nodes[key]
 	if !ok {
