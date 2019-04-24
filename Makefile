@@ -6,13 +6,10 @@ all: lint test
 
 LINTER_INSTALLED := $(shell sh -c 'which golangci-lint')
 
-tidy:
-	go mod tidy
-
-build: tidy
+build:
 	go build
 
-test: tidy
+test:
 	go test -race -v github.com/spothero/periodic -coverprofile=coverage.txt -covermode=atomic
 
 coverage: test
