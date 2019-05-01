@@ -579,12 +579,12 @@ func (d Delete) execute() {
 	d.pc.delete(d.key)
 }
 
-func (pc *PeriodCollection) NodeDebug() string {
+func (pc *PeriodCollection) NodeDebug() ([]byte, error) {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	treeJson, err := json.Marshal(pc.root)
 	if err != nil {
-		return fmt.Sprintf("error marshalling tree %v", err.Error())
+		return nil, err
 	}
-	return string(treeJson)
+	return treeJson, nil
 }
