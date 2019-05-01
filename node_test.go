@@ -25,8 +25,8 @@ func TestNode_isLeftChild(t *testing.T) {
 	root := &node{}
 	left := &node{parent: root}
 	right := &node{parent: root}
-	root.left = left
-	root.right = right
+	root.Left = left
+	root.Right = right
 	tests := []struct {
 		name     string
 		testNode *node
@@ -57,8 +57,8 @@ func TestNode_sibling(t *testing.T) {
 	root := &node{}
 	left := &node{parent: root}
 	right := &node{parent: root}
-	root.left = left
-	root.right = right
+	root.Left = left
+	root.Right = right
 	tests := []struct {
 		name     string
 		testNode *node
@@ -94,19 +94,19 @@ func TestNode_nodeColor(t *testing.T) {
 		{
 			"black node is black",
 			func() *node {
-				return &node{color: black}
+				return &node{Color: black}
 			},
 			black,
 		}, {
 			"red node is red",
 			func() *node {
-				return &node{color: red}
+				return &node{Color: red}
 			},
 			red,
 		}, {
 			"leaf node is black",
 			func() *node {
-				return &node{leaf: true}
+				return &node{Leaf: true}
 			},
 			black,
 		},
@@ -131,31 +131,31 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 	c := newNode(Period{time.Unix(5, 0), time.Unix(45, 0)}, nil, nil, black)
 	d := newNode(Period{time.Unix(22, 0), time.Unix(101, 0)}, nil, nil, black)
 	e := newNode(Period{time.Unix(25, 0), time.Unix(100, 0)}, nil, nil, black)
-	a.left, a.right = b, d
-	b.left = c
-	d.right = e
-	a.maxEnd = d.period.End
-	b.maxEnd = c.period.End
-	c.maxEnd = c.period.End
-	d.maxEnd = d.period.End
-	e.maxEnd = e.period.End
+	a.Left, a.Right = b, d
+	b.Left = c
+	d.Right = e
+	a.MaxEnd = d.Period.End
+	b.MaxEnd = c.Period.End
+	c.MaxEnd = c.Period.End
+	d.MaxEnd = d.Period.End
+	e.MaxEnd = e.Period.End
 
 	f := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
 	g := newNode(Period{time.Unix(15, 0), time.Time{}}, nil, nil, black)
-	f.left = g
-	g.maxEnd = g.period.End
+	f.Left = g
+	g.MaxEnd = g.Period.End
 
 	h := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
 	i := newNode(Period{time.Unix(25, 0), time.Time{}}, nil, nil, black)
-	h.right = i
-	h.maxEnd = h.period.End
+	h.Right = i
+	h.MaxEnd = h.Period.End
 
 	j := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
 	k := newNode(Period{time.Unix(15, 0), time.Unix(25, 0)}, nil, nil, black)
 	l := newNode(Period{time.Unix(30, 0), time.Time{}}, nil, nil, black)
-	j.left, j.right = k, l
-	k.maxEnd = k.period.End
-	j.maxEnd = j.period.End
+	j.Left, j.Right = k, l
+	k.MaxEnd = k.Period.End
+	j.MaxEnd = j.Period.End
 
 	tests := []struct {
 		name     string
@@ -165,19 +165,19 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 		{
 			"node with only child leafs returns its own max end time",
 			c,
-			c.period.End,
+			c.Period.End,
 		}, {
 			"node with only left child returns max of its period end and its left child's max end",
 			b,
-			c.maxEnd,
+			c.MaxEnd,
 		}, {
 			"node with only right child returns max of its period end and its right child's max end",
 			d,
-			d.maxEnd,
+			d.MaxEnd,
 		}, {
 			"node with left and right children returns the max of its period end and its children's max ends",
 			a,
-			d.maxEnd,
+			d.MaxEnd,
 		}, {
 			"node with only left child with period unbounded on the right returns the zero time",
 			f,
@@ -201,7 +201,7 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 
 func TestNode_periodToLeft(t *testing.T) {
 	n := &node{
-		period: NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
+		Period: NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
 	}
 	tests := []struct {
 		name    string

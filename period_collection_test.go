@@ -39,25 +39,25 @@ func TestPeriodCollection_Insert(t *testing.T) {
 			func() *PeriodCollection { return NewPeriodCollection() },
 			[]insertions{{NewPeriod(time.Unix(1, 0), time.Unix(5, 0)), 0, false}},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, black, pc.root.color)
+				assert.Equal(t, black, pc.root.Color)
 				assert.Contains(t, pc.nodes, 0)
-				assert.Equal(t, time.Unix(5, 0), pc.root.maxEnd)
+				assert.Equal(t, time.Unix(5, 0), pc.root.MaxEnd)
 			},
 		}, {
 			"inserting a node into a tree with a sentinel root replaces the sentinel with a new root",
 			func() *PeriodCollection {
 				pc := NewPeriodCollection()
-				pc.root = &node{leaf: true}
+				pc.root = &node{Leaf: true}
 				return pc
 			},
 			[]insertions{{NewPeriod(time.Unix(1, 0), time.Unix(5, 0)), 0, false}},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, black, pc.root.color)
-				assert.False(t, pc.root.leaf)
-				assert.Equal(t, time.Unix(1, 0), pc.root.period.Start)
+				assert.Equal(t, black, pc.root.Color)
+				assert.False(t, pc.root.Leaf)
+				assert.Equal(t, time.Unix(1, 0), pc.root.Period.Start)
 				assert.Contains(t, pc.nodes, 0)
 				assert.Len(t, pc.nodes, 1)
-				assert.Equal(t, time.Unix(5, 0), pc.root.maxEnd)
+				assert.Equal(t, time.Unix(5, 0), pc.root.MaxEnd)
 			},
 		}, {
 			/* after insertion, 1 and 3 are red and 2 is black
@@ -73,21 +73,21 @@ func TestPeriodCollection_Insert(t *testing.T) {
 				{NewPeriod(time.Unix(3, 0), time.Unix(4, 0)), 2, false},
 			},
 			func(t *testing.T, pc *PeriodCollection) {
-				require.NotNil(t, pc.root.left)
-				require.NotNil(t, pc.root.right)
-				assert.Equal(t, time.Unix(2, 0), pc.root.period.Start)
-				assert.Equal(t, time.Unix(1, 0), pc.root.left.period.Start)
-				assert.Equal(t, time.Unix(3, 0), pc.root.right.period.Start)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, red, pc.root.left.color)
-				assert.Equal(t, red, pc.root.right.color)
+				require.NotNil(t, pc.root.Left)
+				require.NotNil(t, pc.root.Right)
+				assert.Equal(t, time.Unix(2, 0), pc.root.Period.Start)
+				assert.Equal(t, time.Unix(1, 0), pc.root.Left.Period.Start)
+				assert.Equal(t, time.Unix(3, 0), pc.root.Right.Period.Start)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, red, pc.root.Left.Color)
+				assert.Equal(t, red, pc.root.Right.Color)
 				for i := 0; i < 3; i++ {
 					assert.Contains(t, pc.nodes, i)
 				}
 				assert.Len(t, pc.nodes, 3)
-				assert.Equal(t, time.Unix(10, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(4, 0), pc.root.right.maxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(4, 0), pc.root.Right.MaxEnd)
 			},
 		}, {
 			/* Nodes will be inserted and should be rotated and rebalanced such that 1 and 3 are red
@@ -105,22 +105,22 @@ func TestPeriodCollection_Insert(t *testing.T) {
 				{NewPeriod(time.Unix(3, 0), time.Unix(10, 0)), 2, false},
 			},
 			func(t *testing.T, pc *PeriodCollection) {
-				require.NotNil(t, pc.root.left)
-				require.NotNil(t, pc.root.right)
-				assert.Equal(t, time.Unix(2, 0), pc.root.period.Start)
-				assert.Equal(t, time.Unix(1, 0), pc.root.left.period.Start)
-				assert.Equal(t, time.Unix(3, 0), pc.root.right.period.Start)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, red, pc.root.left.color)
-				assert.Equal(t, red, pc.root.right.color)
+				require.NotNil(t, pc.root.Left)
+				require.NotNil(t, pc.root.Right)
+				assert.Equal(t, time.Unix(2, 0), pc.root.Period.Start)
+				assert.Equal(t, time.Unix(1, 0), pc.root.Left.Period.Start)
+				assert.Equal(t, time.Unix(3, 0), pc.root.Right.Period.Start)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, red, pc.root.Left.Color)
+				assert.Equal(t, red, pc.root.Right.Color)
 				for i := 0; i < 3; i++ {
 					assert.Contains(t, pc.nodes, i)
 				}
 				assert.Len(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 3)
-				assert.Equal(t, time.Unix(10, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(5, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.right.maxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(5, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Right.MaxEnd)
 			},
 		}, {
 			/* 20 is black, 10, 30 are red to start, inserting 35 should make nodes 10 and 30 black
@@ -135,27 +135,27 @@ func TestPeriodCollection_Insert(t *testing.T) {
 				twenty := newNode(NewPeriod(time.Unix(20, 0), time.Unix(25, 0)), nil, nil, black)
 				ten := newNode(NewPeriod(time.Unix(10, 0), time.Unix(22, 0)), nil, nil, red)
 				thirty := newNode(NewPeriod(time.Unix(30, 0), time.Unix(100, 0)), nil, nil, red)
-				twenty.left, twenty.right, twenty.maxEnd = ten, thirty, thirty.period.End
-				ten.parent, ten.maxEnd = twenty, ten.period.End
-				thirty.parent, thirty.maxEnd = twenty, thirty.period.End
+				twenty.Left, twenty.Right, twenty.MaxEnd = ten, thirty, thirty.Period.End
+				ten.parent, ten.MaxEnd = twenty, ten.Period.End
+				thirty.parent, thirty.MaxEnd = twenty, thirty.Period.End
 				pc := NewPeriodCollection()
 				pc.root = twenty
 				return pc
 			},
 			[]insertions{{NewPeriod(time.Unix(35, 0), time.Unix(50, 0)), 0, false}},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, time.Unix(20, 0), pc.root.period.Start)
-				assert.Equal(t, time.Unix(10, 0), pc.root.left.period.Start)
-				assert.Equal(t, time.Unix(30, 0), pc.root.right.period.Start)
-				assert.Equal(t, time.Unix(35, 0), pc.root.right.right.period.Start)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, red, pc.root.right.right.color)
-				assert.Equal(t, time.Unix(100, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(22, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(100, 0), pc.root.right.maxEnd)
-				assert.Equal(t, time.Unix(50, 0), pc.root.right.right.maxEnd)
+				assert.Equal(t, time.Unix(20, 0), pc.root.Period.Start)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Left.Period.Start)
+				assert.Equal(t, time.Unix(30, 0), pc.root.Right.Period.Start)
+				assert.Equal(t, time.Unix(35, 0), pc.root.Right.Right.Period.Start)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, red, pc.root.Right.Right.Color)
+				assert.Equal(t, time.Unix(100, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(22, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(100, 0), pc.root.Right.MaxEnd)
+				assert.Equal(t, time.Unix(50, 0), pc.root.Right.Right.MaxEnd)
 			},
 		}, {
 			/* 20 is black, 30 is red to start, inserting 25 should rebalance the tree with multiple left rotations
@@ -169,23 +169,23 @@ func TestPeriodCollection_Insert(t *testing.T) {
 			func() *PeriodCollection {
 				twenty := newNode(NewPeriod(time.Unix(20, 0), time.Unix(50, 0)), nil, nil, black)
 				thirty := newNode(NewPeriod(time.Unix(30, 0), time.Unix(75, 0)), nil, nil, red)
-				twenty.right, twenty.maxEnd = thirty, thirty.period.End
-				thirty.parent, thirty.maxEnd = twenty, thirty.period.End
+				twenty.Right, twenty.MaxEnd = thirty, thirty.Period.End
+				thirty.parent, thirty.MaxEnd = twenty, thirty.Period.End
 				pc := NewPeriodCollection()
 				pc.root = twenty
 				return pc
 			},
 			[]insertions{{NewPeriod(time.Unix(25, 0), time.Unix(100, 0)), 0, false}},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, time.Unix(25, 0), pc.root.period.Start)
-				assert.Equal(t, time.Unix(20, 0), pc.root.left.period.Start)
-				assert.Equal(t, time.Unix(30, 0), pc.root.right.period.Start)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, red, pc.root.left.color)
-				assert.Equal(t, red, pc.root.right.color)
-				assert.Equal(t, time.Unix(100, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(50, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(75, 0), pc.root.right.maxEnd)
+				assert.Equal(t, time.Unix(25, 0), pc.root.Period.Start)
+				assert.Equal(t, time.Unix(20, 0), pc.root.Left.Period.Start)
+				assert.Equal(t, time.Unix(30, 0), pc.root.Right.Period.Start)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, red, pc.root.Left.Color)
+				assert.Equal(t, red, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(100, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(50, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(75, 0), pc.root.Right.MaxEnd)
 			},
 		}, {
 			/* 25 is black, 15 is red to start, inserting 20 should rebalance the tree with multiple right rotations
@@ -199,23 +199,23 @@ func TestPeriodCollection_Insert(t *testing.T) {
 			func() *PeriodCollection {
 				twentyFive := newNode(NewPeriod(time.Unix(25, 0), time.Unix(45, 0)), nil, nil, black)
 				fifteen := newNode(NewPeriod(time.Unix(15, 0), time.Unix(20, 0)), nil, nil, red)
-				twentyFive.left, twentyFive.maxEnd = fifteen, twentyFive.period.End
-				fifteen.parent, fifteen.maxEnd = twentyFive, fifteen.period.End
+				twentyFive.Left, twentyFive.MaxEnd = fifteen, twentyFive.Period.End
+				fifteen.parent, fifteen.MaxEnd = twentyFive, fifteen.Period.End
 				pc := NewPeriodCollection()
 				pc.root = twentyFive
 				return pc
 			},
 			[]insertions{{NewPeriod(time.Unix(20, 0), time.Unix(40, 0)), 0, false}},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, time.Unix(20, 0), pc.root.period.Start)
-				assert.Equal(t, time.Unix(15, 0), pc.root.left.period.Start)
-				assert.Equal(t, time.Unix(25, 0), pc.root.right.period.Start)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, red, pc.root.left.color)
-				assert.Equal(t, red, pc.root.right.color)
-				assert.Equal(t, time.Unix(45, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(45, 0), pc.root.right.maxEnd)
-				assert.Equal(t, time.Unix(20, 0), pc.root.left.maxEnd)
+				assert.Equal(t, time.Unix(20, 0), pc.root.Period.Start)
+				assert.Equal(t, time.Unix(15, 0), pc.root.Left.Period.Start)
+				assert.Equal(t, time.Unix(25, 0), pc.root.Right.Period.Start)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, red, pc.root.Left.Color)
+				assert.Equal(t, red, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(45, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(45, 0), pc.root.Right.MaxEnd)
+				assert.Equal(t, time.Unix(20, 0), pc.root.Left.MaxEnd)
 			},
 		}, {
 			"inserting a node with the same key as an existing node returns an error",
@@ -236,10 +236,10 @@ func TestPeriodCollection_Insert(t *testing.T) {
 			},
 			[]insertions{{NewPeriod(time.Unix(10, 0), time.Time{}), 0, false}},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, time.Unix(20, 0), pc.root.period.Start)
-				assert.Equal(t, time.Unix(10, 0), pc.root.left.period.Start)
-				assert.Equal(t, time.Time{}, pc.root.maxEnd)
-				assert.Equal(t, time.Time{}, pc.root.left.maxEnd)
+				assert.Equal(t, time.Unix(20, 0), pc.root.Period.Start)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Left.Period.Start)
+				assert.Equal(t, time.Time{}, pc.root.MaxEnd)
+				assert.Equal(t, time.Time{}, pc.root.Left.MaxEnd)
 			},
 		}, {
 			"inserting a node on the right with an unbounded period updates maxEnd correctly",
@@ -250,10 +250,10 @@ func TestPeriodCollection_Insert(t *testing.T) {
 			},
 			[]insertions{{NewPeriod(time.Unix(30, 0), time.Time{}), 0, false}},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.Equal(t, time.Unix(20, 0), pc.root.period.Start)
-				assert.Equal(t, time.Unix(30, 0), pc.root.right.period.Start)
-				assert.Equal(t, time.Time{}, pc.root.maxEnd)
-				assert.Equal(t, time.Time{}, pc.root.right.maxEnd)
+				assert.Equal(t, time.Unix(20, 0), pc.root.Period.Start)
+				assert.Equal(t, time.Unix(30, 0), pc.root.Right.Period.Start)
+				assert.Equal(t, time.Time{}, pc.root.MaxEnd)
+				assert.Equal(t, time.Time{}, pc.root.Right.MaxEnd)
 			},
 		},
 	}
@@ -280,25 +280,25 @@ func TestPeriodCollection_rotate(t *testing.T) {
 	nodeD := &node{}
 	cleanupTree := func() {
 		for _, n := range []*node{nodeA, nodeB, nodeC, nodeD} {
-			n.left, n.right, n.parent = &node{leaf: true}, &node{leaf: true}, nil
+			n.Left, n.Right, n.parent = &node{Leaf: true}, &node{Leaf: true}, nil
 		}
 	}
 	setupLeftTree := func() *PeriodCollection {
 		cleanupTree()
-		nodeD.left, nodeD.period.End, nodeD.maxEnd = nodeC, time.Unix(1, 0), time.Unix(10, 0)
-		nodeC.left, nodeC.right, nodeC.parent, nodeC.period.End, nodeC.maxEnd =
+		nodeD.Left, nodeD.Period.End, nodeD.MaxEnd = nodeC, time.Unix(1, 0), time.Unix(10, 0)
+		nodeC.Left, nodeC.Right, nodeC.parent, nodeC.Period.End, nodeC.MaxEnd =
 			nodeA, nodeB, nodeD, time.Unix(2, 0), time.Unix(10, 0)
-		nodeA.parent, nodeA.period.End, nodeA.maxEnd = nodeC, time.Unix(10, 0), time.Unix(10, 0)
-		nodeB.parent, nodeB.period.End, nodeB.maxEnd = nodeC, time.Unix(5, 0), time.Unix(5, 0)
+		nodeA.parent, nodeA.Period.End, nodeA.MaxEnd = nodeC, time.Unix(10, 0), time.Unix(10, 0)
+		nodeB.parent, nodeB.Period.End, nodeB.MaxEnd = nodeC, time.Unix(5, 0), time.Unix(5, 0)
 		return &PeriodCollection{root: nodeD}
 	}
 	setupRightTree := func() *PeriodCollection {
 		cleanupTree()
-		nodeD.right, nodeD.period.End, nodeD.maxEnd = nodeC, time.Unix(1, 0), time.Unix(10, 0)
-		nodeC.left, nodeC.right, nodeC.parent, nodeC.period.End, nodeC.maxEnd =
+		nodeD.Right, nodeD.Period.End, nodeD.MaxEnd = nodeC, time.Unix(1, 0), time.Unix(10, 0)
+		nodeC.Left, nodeC.Right, nodeC.parent, nodeC.Period.End, nodeC.MaxEnd =
 			nodeA, nodeB, nodeD, time.Unix(2, 0), time.Unix(10, 0)
-		nodeA.parent, nodeA.period.End, nodeA.maxEnd = nodeC, time.Unix(10, 0), time.Unix(10, 0)
-		nodeB.parent, nodeB.period.End, nodeB.maxEnd = nodeC, time.Unix(5, 0), time.Unix(5, 0)
+		nodeA.parent, nodeA.Period.End, nodeA.MaxEnd = nodeC, time.Unix(10, 0), time.Unix(10, 0)
+		nodeB.parent, nodeB.Period.End, nodeB.MaxEnd = nodeC, time.Unix(5, 0), time.Unix(5, 0)
 		return &PeriodCollection{root: nodeD}
 	}
 	tests := []struct {
@@ -323,22 +323,22 @@ func TestPeriodCollection_rotate(t *testing.T) {
 			right,
 			nodeC,
 			func(t *testing.T) {
-				assert.Equal(t, nodeA, nodeD.left)
-				assert.True(t, nodeD.right.leaf)
+				assert.Equal(t, nodeA, nodeD.Left)
+				assert.True(t, nodeD.Right.Leaf)
 				assert.Nil(t, nodeD.parent)
-				assert.True(t, nodeA.left.leaf)
-				assert.Equal(t, nodeC, nodeA.right)
+				assert.True(t, nodeA.Left.Leaf)
+				assert.Equal(t, nodeC, nodeA.Right)
 				assert.Equal(t, nodeD, nodeA.parent)
-				assert.True(t, nodeC.left.leaf)
-				assert.Equal(t, nodeB, nodeC.right)
+				assert.True(t, nodeC.Left.Leaf)
+				assert.Equal(t, nodeB, nodeC.Right)
 				assert.Equal(t, nodeA, nodeC.parent)
-				assert.True(t, nodeB.left.leaf)
-				assert.True(t, nodeB.right.leaf)
+				assert.True(t, nodeB.Left.Leaf)
+				assert.True(t, nodeB.Right.Leaf)
 				assert.Equal(t, nodeC, nodeB.parent)
-				assert.Equal(t, time.Unix(10, 0), nodeD.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), nodeA.maxEnd)
-				assert.Equal(t, time.Unix(5, 0), nodeC.maxEnd)
-				assert.Equal(t, time.Unix(5, 0), nodeB.maxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeD.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeA.MaxEnd)
+				assert.Equal(t, time.Unix(5, 0), nodeC.MaxEnd)
+				assert.Equal(t, time.Unix(5, 0), nodeB.MaxEnd)
 			},
 		}, {
 			/*
@@ -355,22 +355,22 @@ func TestPeriodCollection_rotate(t *testing.T) {
 			left,
 			nodeC,
 			func(t *testing.T) {
-				assert.True(t, nodeD.right.leaf)
-				assert.Equal(t, nodeB, nodeD.left)
+				assert.True(t, nodeD.Right.Leaf)
+				assert.Equal(t, nodeB, nodeD.Left)
 				assert.Nil(t, nodeD.parent)
-				assert.Equal(t, nodeC, nodeB.left)
-				assert.True(t, nodeB.right.leaf)
+				assert.Equal(t, nodeC, nodeB.Left)
+				assert.True(t, nodeB.Right.Leaf)
 				assert.Equal(t, nodeD, nodeB.parent)
-				assert.Equal(t, nodeA, nodeC.left)
-				assert.True(t, nodeC.right.leaf)
+				assert.Equal(t, nodeA, nodeC.Left)
+				assert.True(t, nodeC.Right.Leaf)
 				assert.Equal(t, nodeB, nodeC.parent)
-				assert.True(t, nodeA.left.leaf)
-				assert.True(t, nodeA.right.leaf)
+				assert.True(t, nodeA.Left.Leaf)
+				assert.True(t, nodeA.Right.Leaf)
 				assert.Equal(t, nodeC, nodeA.parent)
-				assert.Equal(t, time.Unix(10, 0), nodeD.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), nodeB.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), nodeC.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), nodeA.maxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeD.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeB.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeC.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeA.MaxEnd)
 			},
 		}, {
 			/*
@@ -385,22 +385,22 @@ func TestPeriodCollection_rotate(t *testing.T) {
 			right,
 			nodeD,
 			func(t *testing.T) {
-				assert.Equal(t, nodeA, nodeC.left)
-				assert.Equal(t, nodeD, nodeC.right)
+				assert.Equal(t, nodeA, nodeC.Left)
+				assert.Equal(t, nodeD, nodeC.Right)
 				assert.Nil(t, nodeC.parent)
-				assert.True(t, nodeA.left.leaf)
-				assert.True(t, nodeA.right.leaf)
+				assert.True(t, nodeA.Left.Leaf)
+				assert.True(t, nodeA.Right.Leaf)
 				assert.Equal(t, nodeC, nodeA.parent)
-				assert.True(t, nodeB.left.leaf)
-				assert.True(t, nodeB.right.leaf)
+				assert.True(t, nodeB.Left.Leaf)
+				assert.True(t, nodeB.Right.Leaf)
 				assert.Equal(t, nodeD, nodeB.parent)
-				assert.Equal(t, nodeB, nodeD.left)
-				assert.True(t, nodeD.right.leaf)
+				assert.Equal(t, nodeB, nodeD.Left)
+				assert.True(t, nodeD.Right.Leaf)
 				assert.Equal(t, nodeC, nodeD.parent)
-				assert.Equal(t, time.Unix(10, 0), nodeC.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), nodeA.maxEnd)
-				assert.Equal(t, time.Unix(5, 0), nodeD.maxEnd)
-				assert.Equal(t, time.Unix(5, 0), nodeB.maxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeC.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeA.MaxEnd)
+				assert.Equal(t, time.Unix(5, 0), nodeD.MaxEnd)
+				assert.Equal(t, time.Unix(5, 0), nodeB.MaxEnd)
 			},
 		}, {
 			/*
@@ -415,22 +415,22 @@ func TestPeriodCollection_rotate(t *testing.T) {
 			left,
 			nodeD,
 			func(t *testing.T) {
-				assert.Equal(t, nodeD, nodeC.left)
-				assert.Equal(t, nodeB, nodeC.right)
+				assert.Equal(t, nodeD, nodeC.Left)
+				assert.Equal(t, nodeB, nodeC.Right)
 				assert.Nil(t, nodeC.parent)
-				assert.True(t, nodeD.left.leaf)
-				assert.Equal(t, nodeA, nodeD.right)
+				assert.True(t, nodeD.Left.Leaf)
+				assert.Equal(t, nodeA, nodeD.Right)
 				assert.Equal(t, nodeC, nodeD.parent)
-				assert.True(t, nodeA.left.leaf)
-				assert.True(t, nodeA.right.leaf)
+				assert.True(t, nodeA.Left.Leaf)
+				assert.True(t, nodeA.Right.Leaf)
 				assert.Equal(t, nodeD, nodeA.parent)
-				assert.True(t, nodeB.left.leaf)
-				assert.True(t, nodeB.right.leaf)
+				assert.True(t, nodeB.Left.Leaf)
+				assert.True(t, nodeB.Right.Leaf)
 				assert.Equal(t, nodeC, nodeB.parent)
-				assert.Equal(t, time.Unix(10, 0), nodeC.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), nodeD.maxEnd)
-				assert.Equal(t, time.Unix(5, 0), nodeB.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), nodeA.maxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeC.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeD.MaxEnd)
+				assert.Equal(t, time.Unix(5, 0), nodeB.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), nodeA.MaxEnd)
 			},
 		},
 	}
@@ -459,15 +459,15 @@ func TestPeriodCollection_successor(t *testing.T) {
 	nodeD := newNode(Period{}, nil, nil, black)
 	nodeE := newNode(Period{}, nil, nil, black)
 	nodeF := newNode(Period{}, nil, nil, black)
-	nodeE.left = nodeB
-	nodeE.right = nodeF
+	nodeE.Left = nodeB
+	nodeE.Right = nodeF
 	nodeB.parent = nodeE
 	nodeF.parent = nodeE
-	nodeB.left = nodeA
-	nodeB.right = nodeC
+	nodeB.Left = nodeA
+	nodeB.Right = nodeC
 	nodeA.parent = nodeB
 	nodeC.parent = nodeB
-	nodeC.right = nodeD
+	nodeC.Right = nodeD
 	nodeD.parent = nodeC
 	tests := []struct {
 		name              string
@@ -537,9 +537,9 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				return &PeriodCollection{root: root, nodes: map[interface{}]*node{1: root}}, root
 			},
 			func(t *testing.T, pc *PeriodCollection) {
-				assert.True(t, pc.root.leaf)
-				assert.Nil(t, pc.root.left)
-				assert.Nil(t, pc.root.right)
+				assert.True(t, pc.root.Leaf)
+				assert.Nil(t, pc.root.Left)
+				assert.Nil(t, pc.root.Right)
 				assert.Nil(t, pc.root.parent)
 				assert.NotContains(t, pc.nodes, 1)
 			},
@@ -558,8 +558,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				n := newNode(Period{End: time.Unix(45, 0)}, 3, "n", black)
 				l := newNode(Period{End: time.Unix(25, 0)}, 4, "l", red)
 				r := newNode(Period{End: time.Unix(60, 0)}, 5, "r", red)
-				p.left, p.right, p.maxEnd = s, n, r.period.End
-				s.left, s.right, s.parent, s.maxEnd = l, r, p, r.period.End
+				p.Left, p.Right, p.MaxEnd = s, n, r.Period.End
+				s.Left, s.Right, s.parent, s.MaxEnd = l, r, p, r.Period.End
 				l.parent, r.parent = s, s
 				n.parent = p
 				return &PeriodCollection{
@@ -569,18 +569,18 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "r", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "s", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, "p", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, "l", pc.root.left.left.contents)
-				assert.Equal(t, red, pc.root.left.left.color)
-				assert.True(t, pc.root.right.right.leaf)
-				assert.Equal(t, time.Unix(60, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(50, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(25, 0), pc.root.left.left.maxEnd)
-				assert.Equal(t, time.Unix(40, 0), pc.root.right.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "s", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, "p", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, "l", pc.root.Left.Left.contents)
+				assert.Equal(t, red, pc.root.Left.Left.Color)
+				assert.True(t, pc.root.Right.Right.Leaf)
+				assert.Equal(t, time.Unix(60, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(50, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(25, 0), pc.root.Left.Left.MaxEnd)
+				assert.Equal(t, time.Unix(40, 0), pc.root.Right.MaxEnd)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 4)
 			},
@@ -599,8 +599,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				n := newNode(Period{End: time.Unix(45, 0)}, 3, "n", black)
 				l := newNode(Period{End: time.Unix(25, 0)}, 4, "l", red)
 				r := newNode(Period{End: time.Unix(60, 0)}, 5, "r", red)
-				p.left, p.right, p.maxEnd = n, s, r.period.End
-				s.left, s.right, s.parent, s.maxEnd = l, r, p, r.period.End
+				p.Left, p.Right, p.MaxEnd = n, s, r.Period.End
+				s.Left, s.Right, s.parent, s.MaxEnd = l, r, p, r.Period.End
 				l.parent, r.parent = s, s
 				n.parent = p
 				return &PeriodCollection{
@@ -610,17 +610,17 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "l", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "p", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, "s", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, "r", pc.root.right.right.contents)
-				assert.Equal(t, red, pc.root.right.right.color)
-				assert.Equal(t, time.Unix(60, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(40, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(60, 0), pc.root.right.maxEnd)
-				assert.Equal(t, time.Unix(60, 0), pc.root.right.right.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "p", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, "s", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, "r", pc.root.Right.Right.contents)
+				assert.Equal(t, red, pc.root.Right.Right.Color)
+				assert.Equal(t, time.Unix(60, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(40, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(60, 0), pc.root.Right.MaxEnd)
+				assert.Equal(t, time.Unix(60, 0), pc.root.Right.Right.MaxEnd)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 4)
 			},
@@ -639,8 +639,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				n := newNode(Period{}, 3, "n", black)
 				l := newNode(Period{}, 4, "l", black)
 				r := newNode(Period{}, 5, "r", black)
-				p.left, p.right = s, n
-				s.left, s.right, s.parent = l, r, p
+				p.Left, p.Right = s, n
+				s.Left, s.Right, s.parent = l, r, p
 				l.parent = s
 				r.parent = s
 				n.parent = p
@@ -651,14 +651,14 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "s", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, "p", pc.root.right.contents)
-				assert.Equal(t, red, pc.root.right.color)
-				assert.Equal(t, "r", pc.root.right.left.contents)
-				assert.Equal(t, black, pc.root.right.left.color)
-				assert.True(t, pc.root.right.right.leaf)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, "p", pc.root.Right.contents)
+				assert.Equal(t, red, pc.root.Right.Color)
+				assert.Equal(t, "r", pc.root.Right.Left.contents)
+				assert.Equal(t, black, pc.root.Right.Left.Color)
+				assert.True(t, pc.root.Right.Right.Leaf)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 4)
 			},
@@ -677,8 +677,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				n := newNode(Period{}, 3, "n", black)
 				l := newNode(Period{}, 4, "l", black)
 				r := newNode(Period{}, 5, "r", black)
-				p.left, p.right = n, s
-				s.left, s.right, s.parent = l, r, p
+				p.Left, p.Right = n, s
+				s.Left, s.Right, s.parent = l, r, p
 				l.parent = s
 				r.parent = s
 				n.parent = p
@@ -689,14 +689,14 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "s", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "p", pc.root.left.contents)
-				assert.Equal(t, red, pc.root.left.color)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, "l", pc.root.left.right.contents)
-				assert.Equal(t, black, pc.root.right.left.color)
-				assert.True(t, pc.root.left.left.leaf)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "p", pc.root.Left.contents)
+				assert.Equal(t, red, pc.root.Left.Color)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, "l", pc.root.Left.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Left.Color)
+				assert.True(t, pc.root.Left.Left.Leaf)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 4)
 			},
@@ -714,8 +714,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				s := newNode(Period{End: time.Unix(10, 0)}, 2, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, 3, "n", black)
 				l := newNode(Period{End: time.Unix(25, 0)}, 4, "l", red)
-				p.left, p.right, p.maxEnd = n, s, n.period.End
-				n.left, n.parent = l, p
+				p.Left, p.Right, p.MaxEnd = n, s, n.Period.End
+				n.Left, n.parent = l, p
 				s.parent = p
 				l.parent = n
 				return &PeriodCollection{
@@ -725,16 +725,16 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "s", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, time.Unix(25, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(25, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.right.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "s", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(25, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(25, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Right.MaxEnd)
 				assert.NotContains(t, pc.nodes, 3)
-				assert.Equal(t, pc.nodes[4], pc.root.left)
+				assert.Equal(t, pc.nodes[4], pc.root.Left)
 				assert.Len(t, pc.nodes, 3)
 			},
 		}, {
@@ -751,8 +751,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				s := newNode(Period{End: time.Unix(10, 0)}, 2, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, 3, "n", black)
 				r := newNode(Period{End: time.Unix(25, 0)}, 4, "r", red)
-				p.left, p.right, p.maxEnd = s, n, n.period.End
-				n.right, n.parent = r, p
+				p.Left, p.Right, p.MaxEnd = s, n, n.Period.End
+				n.Right, n.parent = r, p
 				s.parent = p
 				r.parent = n
 				return &PeriodCollection{
@@ -762,14 +762,14 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "s", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, time.Unix(25, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(25, 0), pc.root.right.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "s", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(25, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(25, 0), pc.root.Right.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Left.MaxEnd)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 3)
 			},
@@ -787,8 +787,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				s := newNode(Period{End: time.Unix(10, 0)}, 2, "s", black)
 				n := newNode(Period{End: time.Unix(25, 0)}, 3, "n", black)
 				r := newNode(Period{End: time.Unix(45, 0)}, 4, "r", red)
-				p.left, p.right, p.maxEnd = n, s, r.maxEnd
-				n.right, n.parent = r, p
+				p.Left, p.Right, p.MaxEnd = n, s, r.MaxEnd
+				n.Right, n.parent = r, p
 				s.parent = p
 				r.parent = n
 				return &PeriodCollection{
@@ -798,14 +798,14 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "r", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "s", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, time.Unix(45, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.right.maxEnd)
-				assert.Equal(t, time.Unix(45, 0), pc.root.left.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "r", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "s", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(45, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Right.MaxEnd)
+				assert.Equal(t, time.Unix(45, 0), pc.root.Left.MaxEnd)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 3)
 			},
@@ -823,8 +823,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				s := newNode(Period{End: time.Unix(10, 0)}, 2, "s", black)
 				n := newNode(Period{End: time.Unix(45, 0)}, 3, "n", black)
 				l := newNode(Period{End: time.Unix(25, 0)}, 4, "l", red)
-				p.left, p.right, p.maxEnd = s, n, n.period.End
-				n.left, n.parent = l, p
+				p.Left, p.Right, p.MaxEnd = s, n, n.Period.End
+				n.Left, n.parent = l, p
 				s.parent = p
 				l.parent = n
 				return &PeriodCollection{
@@ -834,14 +834,14 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "s", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "l", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, time.Unix(25, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(25, 0), pc.root.right.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "s", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "l", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(25, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(25, 0), pc.root.Right.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Left.MaxEnd)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 3)
 			},
@@ -850,14 +850,14 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			func() (*PeriodCollection, *node) {
 				p := newNode(Period{}, 1, "p", red)
 				n := newNode(Period{}, 2, "n", black)
-				p.left = n
+				p.Left = n
 				n.parent = p
 				return &PeriodCollection{root: p, nodes: map[interface{}]*node{1: p, 2: n}}, n
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.True(t, pc.root.left.leaf)
-				assert.Equal(t, black, pc.root.color)
+				assert.True(t, pc.root.Left.Leaf)
+				assert.Equal(t, black, pc.root.Color)
 				assert.NotContains(t, pc.nodes, 2)
 				assert.Len(t, pc.nodes, 1)
 			},
@@ -877,8 +877,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				n := newNode(Period{}, 3, "n", black)
 				l := newNode(Period{}, 4, "l", black)
 				r := newNode(Period{}, 5, "r", black)
-				p.left, p.right = n, s
-				s.left, s.right, s.parent = l, r, p
+				p.Left, p.Right = n, s
+				s.Left, s.Right, s.parent = l, r, p
 				l.parent = s
 				r.parent = s
 				n.parent = p
@@ -889,14 +889,14 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "s", pc.root.right.contents)
-				assert.Equal(t, red, pc.root.right.color)
-				assert.Equal(t, "l", pc.root.right.left.contents)
-				assert.Equal(t, black, pc.root.right.left.color)
-				assert.Equal(t, "r", pc.root.right.right.contents)
-				assert.Equal(t, black, pc.root.right.left.color)
-				assert.True(t, pc.root.left.leaf)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "s", pc.root.Right.contents)
+				assert.Equal(t, red, pc.root.Right.Color)
+				assert.Equal(t, "l", pc.root.Right.Left.contents)
+				assert.Equal(t, black, pc.root.Right.Left.Color)
+				assert.Equal(t, "r", pc.root.Right.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Left.Color)
+				assert.True(t, pc.root.Left.Leaf)
 				assert.NotContains(t, pc.nodes, 3)
 				assert.Len(t, pc.nodes, 4)
 			},
@@ -915,8 +915,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				l := newNode(Period{End: time.Unix(10, 0)}, 2, "l", black)
 				r := newNode(Period{End: time.Unix(30, 0)}, 3, "r", black)
 				rl := newNode(Period{End: time.Unix(50, 0)}, 4, "rl", red)
-				n.left, n.right, n.maxEnd = l, r, rl.period.End
-				r.left, r.parent = rl, n
+				n.Left, n.Right, n.MaxEnd = l, r, rl.Period.End
+				r.Left, r.parent = rl, n
 				l.parent = n
 				rl.parent = r
 				return &PeriodCollection{
@@ -926,19 +926,19 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "rl", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, time.Unix(50, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(30, 0), pc.root.right.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(50, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(30, 0), pc.root.Right.MaxEnd)
 				assert.NotContains(t, pc.nodes, 1)
 				assert.Len(t, pc.nodes, 3)
 				assert.Equal(t, pc.nodes[4], pc.root)
-				assert.Equal(t, pc.nodes[2], pc.root.left)
-				assert.Equal(t, pc.nodes[3], pc.root.right)
+				assert.Equal(t, pc.nodes[2], pc.root.Left)
+				assert.Equal(t, pc.nodes[3], pc.root.Right)
 			},
 		},
 		{
@@ -955,8 +955,8 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				l := newNode(Period{End: time.Unix(10, 0)}, 2, "l", black)
 				r := newNode(Period{End: time.Unix(30, 0)}, 3, "r", black)
 				rl := newNode(Period{End: time.Unix(20, 0)}, 4, "rl", red)
-				n.left, n.right = l, r
-				r.left, r.parent, r.maxEnd = rl, n, rl.period.End
+				n.Left, n.Right = l, r
+				r.Left, r.parent, r.MaxEnd = rl, n, rl.Period.End
 				l.parent = n
 				rl.parent = r
 				return &PeriodCollection{
@@ -966,26 +966,26 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "rl", pc.root.contents)
-				assert.Equal(t, black, pc.root.color)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, time.Unix(30, 0), pc.root.maxEnd)
-				assert.Equal(t, time.Unix(10, 0), pc.root.left.maxEnd)
-				assert.Equal(t, time.Unix(30, 0), pc.root.right.maxEnd)
+				assert.Equal(t, black, pc.root.Color)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, time.Unix(30, 0), pc.root.MaxEnd)
+				assert.Equal(t, time.Unix(10, 0), pc.root.Left.MaxEnd)
+				assert.Equal(t, time.Unix(30, 0), pc.root.Right.MaxEnd)
 				assert.NotContains(t, pc.nodes, 1)
 				assert.Len(t, pc.nodes, 3)
 				assert.Equal(t, pc.nodes[4], pc.root)
-				assert.Equal(t, pc.nodes[2], pc.root.left)
-				assert.Equal(t, pc.nodes[3], pc.root.right)
+				assert.Equal(t, pc.nodes[2], pc.root.Left)
+				assert.Equal(t, pc.nodes[3], pc.root.Right)
 			},
 		}, {
 			"deleting the only child of the root updates max end correctly",
 			func() (*PeriodCollection, *node) {
 				root := newNode(Period{End: time.Unix(20, 0)}, 1, "root", black)
 				r := newNode(Period{End: time.Unix(30, 0)}, 2, "r", black)
-				root.right, root.maxEnd = r, r.period.End
+				root.Right, root.MaxEnd = r, r.Period.End
 				r.parent = root
 				return &PeriodCollection{
 					root:  root,
@@ -994,9 +994,9 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "root", pc.root.contents)
-				assert.True(t, pc.root.left.leaf)
-				assert.True(t, pc.root.right.leaf)
-				assert.Equal(t, time.Unix(20, 0), pc.root.maxEnd)
+				assert.True(t, pc.root.Left.Leaf)
+				assert.True(t, pc.root.Right.Leaf)
+				assert.Equal(t, time.Unix(20, 0), pc.root.MaxEnd)
 				assert.NotContains(t, pc.nodes, 2)
 				assert.Len(t, pc.nodes, 1)
 			},
@@ -1031,11 +1031,11 @@ func TestPeriodCollection_deleteRepairCase1(t *testing.T) {
 				s := newNode(Period{}, nil, "s", red)
 				l := newNode(Period{}, nil, "l", black)
 				r := newNode(Period{}, nil, "r", black)
-				n := &node{leaf: true}
-				p.left = s
-				p.right = n
-				s.left = l
-				s.right = r
+				n := &node{Leaf: true}
+				p.Left = s
+				p.Right = n
+				s.Left = l
+				s.Right = r
 				s.parent = p
 				n.parent = p
 				l.parent = s
@@ -1045,10 +1045,10 @@ func TestPeriodCollection_deleteRepairCase1(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "s", pc.root.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "p", pc.root.right.contents)
-				assert.Equal(t, "r", pc.root.right.left.contents)
-				assert.True(t, pc.root.right.right.leaf)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "p", pc.root.Right.contents)
+				assert.Equal(t, "r", pc.root.Right.Left.contents)
+				assert.True(t, pc.root.Right.Right.Leaf)
 			},
 		}, {
 			/* N is deleted; S is red to start, everything else is black
@@ -1064,11 +1064,11 @@ func TestPeriodCollection_deleteRepairCase1(t *testing.T) {
 				s := newNode(Period{}, nil, "s", red)
 				l := newNode(Period{}, nil, "l", black)
 				r := newNode(Period{}, nil, "r", black)
-				n := &node{leaf: true}
-				p.right = s
-				p.left = n
-				s.left = l
-				s.right = r
+				n := &node{Leaf: true}
+				p.Right = s
+				p.Left = n
+				s.Left = l
+				s.Right = r
 				s.parent = p
 				n.parent = p
 				l.parent = s
@@ -1078,41 +1078,41 @@ func TestPeriodCollection_deleteRepairCase1(t *testing.T) {
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "s", pc.root.contents)
-				assert.Equal(t, "p", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, "l", pc.root.left.right.contents)
-				assert.True(t, pc.root.left.left.leaf)
+				assert.Equal(t, "p", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, "l", pc.root.Left.Right.contents)
+				assert.True(t, pc.root.Left.Left.Leaf)
 			},
 		}, {
 			"deleted child with black sibling does nothing",
 			func() (*PeriodCollection, *node) {
 				p := newNode(Period{}, nil, "p", black)
 				s := newNode(Period{}, nil, "s", black)
-				n := &node{leaf: true}
-				p.left = s
-				p.right = n
+				n := &node{Leaf: true}
+				p.Left = s
+				p.Right = n
 				n.parent = p
 				s.parent = p
 				return &PeriodCollection{root: p}, n
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "s", pc.root.left.contents)
-				assert.True(t, pc.root.right.leaf)
+				assert.Equal(t, "s", pc.root.Left.contents)
+				assert.True(t, pc.root.Right.Leaf)
 			},
 		}, {
 			"deleted child with no sibling does nothing",
 			func() (*PeriodCollection, *node) {
 				p := newNode(Period{}, nil, "p", black)
-				n := &node{leaf: true}
-				p.right = n
+				n := &node{Leaf: true}
+				p.Right = n
 				n.parent = p
 				return &PeriodCollection{root: p}, n
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.True(t, pc.root.left.leaf)
-				assert.True(t, pc.root.right.leaf)
+				assert.True(t, pc.root.Left.Leaf)
+				assert.True(t, pc.root.Right.Leaf)
 			},
 		},
 	}
@@ -1139,9 +1139,9 @@ func TestPeriodCollection_deleteRepairCase2(t *testing.T) {
 				s := newNode(Period{}, nil, "s", black)
 				sl := newNode(Period{}, nil, "sl", black)
 				sr := newNode(Period{}, nil, "sr", black)
-				n := &node{leaf: true, contents: "n"}
-				p.left, p.right = s, n
-				s.left, s.right, s.parent = sl, sr, p
+				n := &node{Leaf: true, contents: "n"}
+				p.Left, p.Right = s, n
+				s.Left, s.Right, s.parent = sl, sr, p
 				sl.parent, sr.parent = s, s
 				n.parent = p
 				return &PeriodCollection{root: p}, n, s
@@ -1154,9 +1154,9 @@ func TestPeriodCollection_deleteRepairCase2(t *testing.T) {
 				p := newNode(Period{}, nil, nil, black)
 				s := newNode(Period{}, nil, nil, black)
 				sr := newNode(Period{}, nil, nil, black)
-				n := &node{leaf: true}
-				p.left, p.right = s, n
-				s.right, s.parent = sr, p
+				n := &node{Leaf: true}
+				p.Left, p.Right = s, n
+				s.Right, s.parent = sr, p
 				sr.parent = s
 				n.parent = p
 				return &PeriodCollection{root: p}, n, s
@@ -1167,9 +1167,9 @@ func TestPeriodCollection_deleteRepairCase2(t *testing.T) {
 			"deleted node with leaf sibling returns true but does not recolor the leaf",
 			func() (*PeriodCollection, *node, *node) {
 				p := newNode(Period{}, nil, nil, black)
-				s := &node{leaf: true}
-				n := &node{leaf: true}
-				p.left, p.right = s, n
+				s := &node{Leaf: true}
+				n := &node{Leaf: true}
+				p.Left, p.Right = s, n
 				s.parent = p
 				n.parent = p
 				return &PeriodCollection{root: p}, n, s
@@ -1183,9 +1183,9 @@ func TestPeriodCollection_deleteRepairCase2(t *testing.T) {
 				s := newNode(Period{}, nil, nil, red)
 				sl := newNode(Period{}, nil, nil, black)
 				sr := newNode(Period{}, nil, nil, black)
-				n := &node{leaf: true}
-				p.left, p.right = s, n
-				s.left, s.right, s.parent = sl, sr, p
+				n := &node{Leaf: true}
+				p.Left, p.Right = s, n
+				s.Left, s.Right, s.parent = sl, sr, p
 				sl.parent, sr.parent = s, s
 				n.parent = p
 				return &PeriodCollection{root: p}, n, s
@@ -1197,13 +1197,13 @@ func TestPeriodCollection_deleteRepairCase2(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pc, n, s := test.setup()
-			sColorBefore := s.color
+			sColorBefore := s.Color
 			result := pc.deleteRepairCase2(n)
 			assert.Equal(t, test.expectedOutcome, result)
 			if test.expectRecolor {
-				assert.Equal(t, red, s.color)
+				assert.Equal(t, red, s.Color)
 			} else {
-				assert.Equal(t, sColorBefore, s.color)
+				assert.Equal(t, sColorBefore, s.Color)
 			}
 		})
 	}
@@ -1221,13 +1221,13 @@ func TestPeriodCollection_deleteRepairCase3(t *testing.T) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				r.parent = p
-				p.right = r
+				p.Right = r
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.True(t, pc.root.left.leaf)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.True(t, pc.root.Left.Leaf)
 			},
 		}, {
 			"no action when sibling is red",
@@ -1236,13 +1236,13 @@ func TestPeriodCollection_deleteRepairCase3(t *testing.T) {
 				r := newNode(Period{}, nil, "r", red)
 				l := newNode(Period{}, nil, "l", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
+				p.Left, p.Right = l, r
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
 			},
 		}, {
 			"no action when node is right child and sibling has no right child",
@@ -1252,16 +1252,16 @@ func TestPeriodCollection_deleteRepairCase3(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				ll := newNode(Period{}, nil, "ll", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				l.left = ll
+				p.Left, p.Right = l, r
+				l.Left = ll
 				ll.parent = ll
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, "ll", pc.root.left.left.contents)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, "ll", pc.root.Left.Left.contents)
 			},
 		}, {
 			"no action when node is left child and sibling has no left child",
@@ -1271,16 +1271,16 @@ func TestPeriodCollection_deleteRepairCase3(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				ll := newNode(Period{}, nil, "ll", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				l.left = ll
+				p.Left, p.Right = l, r
+				l.Left = ll
 				ll.parent = ll
 				return &PeriodCollection{root: p}, l
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, "ll", pc.root.left.left.contents)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, "ll", pc.root.Left.Left.contents)
 			},
 		}, {
 			"left rotate around sibling and recolor when node is right child and sibling is black with red right child",
@@ -1290,18 +1290,18 @@ func TestPeriodCollection_deleteRepairCase3(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				lr := newNode(Period{}, nil, "lr", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				l.right = lr
+				p.Left, p.Right = l, r
+				l.Right = lr
 				lr.parent = l
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "lr", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, "l", pc.root.left.left.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, red, pc.root.left.left.color)
+				assert.Equal(t, "lr", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, "l", pc.root.Left.Left.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, red, pc.root.Left.Left.Color)
 			},
 		}, {
 			"right rotate around sibling and recolor when node is left child and sibling is black with red left child",
@@ -1311,18 +1311,18 @@ func TestPeriodCollection_deleteRepairCase3(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				rl := newNode(Period{}, nil, "rl", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				r.left = rl
+				p.Left, p.Right = l, r
+				r.Left = rl
 				rl.parent = r
 				return &PeriodCollection{root: p}, l
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "rl", pc.root.right.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.right.contents)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, red, pc.root.right.right.color)
+				assert.Equal(t, "rl", pc.root.Right.contents)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.Right.contents)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, red, pc.root.Right.Right.Color)
 			},
 		},
 	}
@@ -1347,13 +1347,13 @@ func TestPeriodCollection_deleteRepairCase4(t *testing.T) {
 				p := newNode(Period{}, nil, "p", black)
 				r := newNode(Period{}, nil, "r", black)
 				r.parent = p
-				p.right = r
+				p.Right = r
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.True(t, pc.root.left.leaf)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.True(t, pc.root.Left.Leaf)
 			},
 		}, {
 			"no action when sibling is red",
@@ -1362,13 +1362,13 @@ func TestPeriodCollection_deleteRepairCase4(t *testing.T) {
 				r := newNode(Period{}, nil, "r", red)
 				l := newNode(Period{}, nil, "l", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
+				p.Left, p.Right = l, r
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
 			},
 		}, {
 			"no action when right child and sibling has no left child",
@@ -1378,16 +1378,16 @@ func TestPeriodCollection_deleteRepairCase4(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				lr := newNode(Period{}, nil, "lr", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				l.right = lr
+				p.Left, p.Right = l, r
+				l.Right = lr
 				lr.parent = l
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, "lr", pc.root.left.right.contents)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, "lr", pc.root.Left.Right.contents)
 			},
 		}, {
 			"no action when left child and sibling has no right child",
@@ -1397,16 +1397,16 @@ func TestPeriodCollection_deleteRepairCase4(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				rl := newNode(Period{}, nil, "rl", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				r.left = rl
+				p.Left, p.Right = l, r
+				r.Left = rl
 				rl.parent = r
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "p", pc.root.contents)
-				assert.Equal(t, "l", pc.root.left.contents)
-				assert.Equal(t, "r", pc.root.right.contents)
-				assert.Equal(t, "rl", pc.root.right.left.contents)
+				assert.Equal(t, "l", pc.root.Left.contents)
+				assert.Equal(t, "r", pc.root.Right.contents)
+				assert.Equal(t, "rl", pc.root.Right.Left.contents)
 			},
 		}, {
 			"right rotate around parent and recolor when right child and sibling is black with red left child",
@@ -1416,19 +1416,19 @@ func TestPeriodCollection_deleteRepairCase4(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				ll := newNode(Period{}, nil, "ll", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				l.left = ll
+				p.Left, p.Right = l, r
+				l.Left = ll
 				ll.parent = l
 				return &PeriodCollection{root: p}, r
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "l", pc.root.contents)
-				assert.Equal(t, "ll", pc.root.left.contents)
-				assert.Equal(t, "p", pc.root.right.contents)
-				assert.Equal(t, "r", pc.root.right.right.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, red, pc.root.color)
+				assert.Equal(t, "ll", pc.root.Left.contents)
+				assert.Equal(t, "p", pc.root.Right.contents)
+				assert.Equal(t, "r", pc.root.Right.Right.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, red, pc.root.Color)
 			},
 		}, {
 			"left rotate around parent and recolor when left child and sibling is black with red right child",
@@ -1438,19 +1438,19 @@ func TestPeriodCollection_deleteRepairCase4(t *testing.T) {
 				l := newNode(Period{}, nil, "l", black)
 				rr := newNode(Period{}, nil, "rr", red)
 				l.parent, r.parent = p, p
-				p.left, p.right = l, r
-				r.right = rr
+				p.Left, p.Right = l, r
+				r.Right = rr
 				rr.parent = r
 				return &PeriodCollection{root: p}, l
 			},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Equal(t, "r", pc.root.contents)
-				assert.Equal(t, "p", pc.root.left.contents)
-				assert.Equal(t, "rr", pc.root.right.contents)
-				assert.Equal(t, "l", pc.root.left.left.contents)
-				assert.Equal(t, black, pc.root.left.color)
-				assert.Equal(t, black, pc.root.right.color)
-				assert.Equal(t, red, pc.root.color)
+				assert.Equal(t, "p", pc.root.Left.contents)
+				assert.Equal(t, "rr", pc.root.Right.contents)
+				assert.Equal(t, "l", pc.root.Left.Left.contents)
+				assert.Equal(t, black, pc.root.Left.Color)
+				assert.Equal(t, black, pc.root.Right.Color)
+				assert.Equal(t, red, pc.root.Color)
 			},
 		},
 	}
@@ -1655,8 +1655,8 @@ func TestPeriodCollection_Intersecting(t *testing.T) {
 				l := newNode(Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 2, 0, 0, 0, 0, time.UTC)}, 2, "l", black)
 				r := newNode(Period{time.Date(2019, 12, 5, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 6, 0, 0, 0, 0, time.UTC)}, 3, "r", black)
 				rl := newNode(Period{time.Date(2019, 12, 3, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 4, 0, 0, 0, 0, time.UTC)}, 4, "rl", red)
-				n.left, n.right = l, r
-				r.left, r.parent, r.maxEnd = rl, n, rl.period.End
+				n.Left, n.Right = l, r
+				r.Left, r.parent, r.MaxEnd = rl, n, rl.Period.End
 				l.parent = n
 				rl.parent = r
 				return &PeriodCollection{
@@ -1721,9 +1721,9 @@ func TestPeriodCollection_Update(t *testing.T) {
 			Period{},
 			func(t *testing.T, pc *PeriodCollection) {
 				assert.Len(t, pc.nodes, 1)
-				assert.Equal(t, 1, pc.root.key)
-				assert.True(t, pc.root.left.leaf)
-				assert.True(t, pc.root.right.leaf)
+				assert.Equal(t, 1, pc.root.Key)
+				assert.True(t, pc.root.Left.Leaf)
+				assert.True(t, pc.root.Right.Leaf)
 			},
 		}, {
 			"updating contents without updating the period swaps contents",
@@ -1731,7 +1731,7 @@ func TestPeriodCollection_Update(t *testing.T) {
 				pc := NewPeriodCollection()
 				l := &node{contents: 1}
 				pc.root = &node{
-					left: l,
+					Left: l,
 				}
 				pc.nodes[0] = pc.root
 				pc.nodes[1] = l
@@ -1743,7 +1743,7 @@ func TestPeriodCollection_Update(t *testing.T) {
 			func(t *testing.T, pc *PeriodCollection) {
 				l, ok := pc.nodes[1]
 				require.True(t, ok)
-				require.Equal(t, l, pc.root.left)
+				require.Equal(t, l, pc.root.Left)
 				assert.Equal(t, l.contents, 2)
 				assert.Len(t, pc.nodes, 2)
 			},
@@ -1754,7 +1754,7 @@ func TestPeriodCollection_Update(t *testing.T) {
 				root := newNode(NewPeriod(time.Unix(10, 0), time.Unix(25, 0)), 0, 0, black)
 				l := newNode(NewPeriod(time.Unix(5, 0), time.Unix(30, 0)), 1, 1, red)
 				pc.root = root
-				root.left, l.parent = l, root
+				root.Left, l.parent = l, root
 				pc.nodes[0] = root
 				pc.nodes[1] = l
 				return pc
@@ -1766,9 +1766,9 @@ func TestPeriodCollection_Update(t *testing.T) {
 				// the node should move from the the parent's left to right
 				r, ok := pc.nodes[1]
 				require.True(t, ok)
-				require.Equal(t, r, pc.root.right)
+				require.Equal(t, r, pc.root.Right)
 				assert.Equal(t, r.contents, 2)
-				assert.True(t, pc.root.left.leaf)
+				assert.True(t, pc.root.Left.Leaf)
 				assert.Len(t, pc.nodes, 2)
 			},
 		}, {
@@ -1788,7 +1788,7 @@ func TestPeriodCollection_Update(t *testing.T) {
 				require.True(t, ok)
 				assert.Equal(t, root, pc.root)
 				assert.Equal(t, 1, pc.root.contents)
-				assert.Equal(t, time.Unix(30, 0), pc.root.period.End)
+				assert.Equal(t, time.Unix(30, 0), pc.root.Period.End)
 			},
 		},
 	}
@@ -1942,8 +1942,8 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 				l := newNode(Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 2, 0, 0, 0, 0, time.UTC)}, 2, "l", black)
 				r := newNode(Period{time.Date(2019, 12, 5, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 6, 0, 0, 0, 0, time.UTC)}, 3, "r", black)
 				rl := newNode(Period{time.Date(2019, 12, 3, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 4, 0, 0, 0, 0, time.UTC)}, 4, "rl", red)
-				n.left, n.right = l, r
-				r.left, r.parent, r.maxEnd = rl, n, rl.period.End
+				n.Left, n.Right = l, r
+				r.Left, r.parent, r.MaxEnd = rl, n, rl.Period.End
 				l.parent = n
 				rl.parent = r
 				return &PeriodCollection{
@@ -1974,23 +1974,23 @@ func TestPeriodCollection_DepthFirstTraverse(t *testing.T) {
 	tree := PeriodCollection{
 		root: &node{
 			contents: "D",
-			left: &node{
+			Left: &node{
 				contents: "C",
-				left: &node{
+				Left: &node{
 					contents: "A",
-					left:     &node{leaf: true},
-					right:    &node{leaf: true},
+					Left:     &node{Leaf: true},
+					Right:    &node{Leaf: true},
 				},
-				right: &node{
+				Right: &node{
 					contents: "B",
-					left:     &node{leaf: true},
-					right:    &node{leaf: true},
+					Left:     &node{Leaf: true},
+					Right:    &node{Leaf: true},
 				},
 			},
-			right: &node{
+			Right: &node{
 				contents: "E",
-				left:     &node{leaf: true},
-				right:    &node{leaf: true},
+				Left:     &node{Leaf: true},
+				Right:    &node{Leaf: true},
 			},
 		},
 	}

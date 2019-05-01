@@ -15,6 +15,7 @@
 package periodic
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -57,7 +58,7 @@ const (
 
 // NewPeriodCollection constructs a new PeriodCollection
 func NewPeriodCollection() *PeriodCollection {
-	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{leaf: true}}
+	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{Leaf: true}}
 }
 
 // Command is an interface that allows multiple operations on the PeriodCollection to be
@@ -97,8 +98,8 @@ func (pc *PeriodCollection) Insert(key interface{}, period Period, contents inte
 func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) {
 	inserted := newNode(period, key, contents, red)
 	pc.nodes[key] = inserted
-	if pc.root == nil || pc.root.leaf {
-		inserted.color = black
+	if pc.root == nil || pc.root.Leaf {
+		inserted.Color = black
 		pc.root = inserted
 	} else {
 		pc.insertRecursive(pc.root, inserted)
@@ -110,27 +111,27 @@ func (pc *PeriodCollection) insert(key interface{}, period Period, contents inte
 // the inserted parameter.
 func (pc *PeriodCollection) insertRecursive(root, inserted *node) {
 	// augment the tree with the maximum end time of its subtree
-	if inserted.period.End.IsZero() {
-		root.maxEnd = inserted.period.End
-	} else if !root.maxEnd.IsZero() {
-		root.maxEnd = MaxTime(root.maxEnd, inserted.period.End)
+	if inserted.Period.End.IsZero() {
+		root.MaxEnd = inserted.Period.End
+	} else if !root.MaxEnd.IsZero() {
+		root.MaxEnd = MaxTime(root.MaxEnd, inserted.Period.End)
 	}
 
-	if root.periodToLeft(inserted.period) {
-		if root.left.leaf {
+	if root.periodToLeft(inserted.Period) {
+		if root.Left.Leaf {
 			inserted.parent = root
-			root.left = inserted
+			root.Left = inserted
 			return
 		}
-		pc.insertRecursive(root.left, inserted)
+		pc.insertRecursive(root.Left, inserted)
 
 	} else {
-		if root.right.leaf {
+		if root.Right.Leaf {
 			inserted.parent = root
-			root.right = inserted
+			root.Right = inserted
 			return
 		}
-		pc.insertRecursive(root.right, inserted)
+		pc.insertRecursive(root.Right, inserted)
 	}
 }
 
@@ -138,11 +139,11 @@ func (pc *PeriodCollection) insertRecursive(root, inserted *node) {
 func (pc *PeriodCollection) insertRepair(n *node) {
 	if n == pc.root {
 		// n is the actual root of the tree, by definition pc is always black
-		n.color = black
+		n.Color = black
 		return
 	}
 
-	if n.parent.color == black {
+	if n.parent.Color == black {
 		// the parent is already black so nothing has to be done
 		return
 	}
@@ -152,32 +153,32 @@ func (pc *PeriodCollection) insertRepair(n *node) {
 
 	if uncleColor == red {
 		// the parent is red; if pc has a red sibling, change parent & uncle to black and change grandparent to red
-		uncle.color = black
-		n.parent.color = black
+		uncle.Color = black
+		n.parent.Color = black
 		if n.parent.parent != nil {
-			n.parent.parent.color = red
+			n.parent.parent.Color = red
 			pc.insertRepair(n.parent.parent)
 			return
 		}
 	}
 
-	if uncleColor == black && n.parent.color == red {
+	if uncleColor == black && n.parent.Color == red {
 		// move n so that pc is on the same side of its parent as its parent is to its grandparent (i.e. pc is on the
 		// outside of the subtree)
 		isInsideRight := n.parent.isLeftChild() && !n.isLeftChild()
 		isInsideLeft := !n.parent.isLeftChild() && n.isLeftChild()
 		if isInsideRight {
 			pc.rotate(n.parent, left)
-			n = n.left
+			n = n.Left
 		} else if isInsideLeft {
 			pc.rotate(n.parent, right)
-			n = n.right
+			n = n.Right
 		}
 
 		// rotate again to move n into the grandparent's spot
-		n.parent.color = black
+		n.parent.Color = black
 		if n.parent.parent != nil {
-			n.parent.parent.color = red
+			n.parent.parent.Color = red
 			if n.isLeftChild() {
 				pc.rotate(n.parent.parent, right)
 			} else {
@@ -193,9 +194,9 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 	var y *node
 	switch direction {
 	case right:
-		y = n.left
+		y = n.Left
 	case left:
-		y = n.right
+		y = n.Right
 	}
 
 	// move y into n's position
@@ -203,9 +204,9 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 		pc.root = y
 	} else {
 		if n.isLeftChild() {
-			n.parent.left = y
+			n.parent.Left = y
 		} else {
-			n.parent.right = y
+			n.parent.Right = y
 		}
 	}
 	y.parent = n.parent
@@ -213,18 +214,18 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 	// rotate about n
 	switch direction {
 	case right:
-		n.left = y.right
-		y.right.parent = n
-		y.right = n
+		n.Left = y.Right
+		y.Right.parent = n
+		y.Right = n
 	case left:
-		n.right = y.left
-		y.left.parent = n
-		y.left = n
+		n.Right = y.Left
+		y.Left.parent = n
+		y.Left = n
 	}
 	n.parent = y
-	n.maxEnd = n.maxEndOfSubtree()
-	if !y.leaf {
-		y.maxEnd = y.maxEndOfSubtree()
+	n.MaxEnd = n.maxEndOfSubtree()
+	if !y.Leaf {
+		y.MaxEnd = y.maxEndOfSubtree()
 	}
 }
 
@@ -251,49 +252,49 @@ func (pc *PeriodCollection) deleteNode(n *node) {
 	var y *node
 	var z *node
 
-	delete(pc.nodes, n.key)
-	if n.left.leaf || n.right.leaf {
+	delete(pc.nodes, n.Key)
+	if n.Left.Leaf || n.Right.Leaf {
 		// n has 0 or 1 children so pc can be deleted
 		y = n
 	} else {
 		// n is an internal node, delete its successor and swap the contents of its successor into n
 		y = n.successor()
-		pc.nodes[y.key] = n
+		pc.nodes[y.Key] = n
 	}
-	if !y.left.leaf {
-		z = y.left
-	} else if !y.right.leaf {
-		z = y.right
+	if !y.Left.Leaf {
+		z = y.Left
+	} else if !y.Right.Leaf {
+		z = y.Right
 	} else {
-		z = &node{leaf: true}
+		z = &node{Leaf: true}
 	}
 	z.parent = y.parent
 
 	if y.parent != nil {
 		if y.isLeftChild() {
-			y.parent.left = z
+			y.parent.Left = z
 		} else {
-			y.parent.right = z
+			y.parent.Right = z
 		}
 	} else {
 		pc.root = z
 	}
-	n.period, n.key, n.contents = y.period, y.key, y.contents
+	n.Period, n.Key, n.contents = y.Period, y.Key, y.contents
 
 	if z.parent != nil {
-		z.parent.maxEnd = z.parent.maxEndOfSubtree()
+		z.parent.MaxEnd = z.parent.maxEndOfSubtree()
 	}
-	n.maxEnd = n.maxEndOfSubtree()
+	n.MaxEnd = n.maxEndOfSubtree()
 
-	if y.color == black {
+	if y.Color == black {
 		pc.deleteRepair(z)
 	}
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
 func (pc *PeriodCollection) deleteRepair(n *node) {
-	if n == pc.root || n.color == red {
-		n.color = black
+	if n == pc.root || n.Color == red {
+		n.Color = black
 		return
 	}
 	pc.deleteRepairCase1(n)
@@ -310,8 +311,8 @@ func (pc *PeriodCollection) deleteRepair(n *node) {
 func (pc *PeriodCollection) deleteRepairCase1(n *node) {
 	sibling := n.sibling()
 	if sibling.nodeColor() == red {
-		sibling.color = black
-		n.parent.color = red
+		sibling.Color = black
+		n.parent.Color = red
 		if n.isLeftChild() {
 			pc.rotate(n.parent, left)
 		} else {
@@ -325,18 +326,18 @@ func (pc *PeriodCollection) deleteRepairCase1(n *node) {
 // to be repaired.
 func (pc *PeriodCollection) deleteRepairCase2(n *node) bool {
 	sibling := n.sibling()
-	if sibling.leaf {
+	if sibling.Leaf {
 		return true
 	}
 	numChildren := 0
-	if !sibling.left.leaf {
+	if !sibling.Left.Leaf {
 		numChildren++
 	}
-	if !sibling.right.leaf {
+	if !sibling.Right.Leaf {
 		numChildren++
 	}
-	if sibling.color == black && numChildren == 2 && sibling.left.color == black && sibling.right.color == black {
-		sibling.color = red
+	if sibling.Color == black && numChildren == 2 && sibling.Left.Color == black && sibling.Right.Color == black {
+		sibling.Color = red
 		return true
 	}
 	return false
@@ -347,14 +348,14 @@ func (pc *PeriodCollection) deleteRepairCase2(n *node) bool {
 // recoloring the sibling red and recoloring the appropriate child to black then rotating to move the sibling up.
 func (pc *PeriodCollection) deleteRepairCase3(n *node) {
 	sibling := n.sibling()
-	if !sibling.leaf && sibling.nodeColor() == black {
-		if sibling.right.nodeColor() == red && !n.isLeftChild() {
-			sibling.color = red
-			sibling.right.color = black
+	if !sibling.Leaf && sibling.nodeColor() == black {
+		if sibling.Right.nodeColor() == red && !n.isLeftChild() {
+			sibling.Color = red
+			sibling.Right.Color = black
 			pc.rotate(sibling, left)
-		} else if sibling.left.nodeColor() == red && n.isLeftChild() {
-			sibling.color = red
-			sibling.left.color = black
+		} else if sibling.Left.nodeColor() == red && n.isLeftChild() {
+			sibling.Color = red
+			sibling.Left.Color = black
 			pc.rotate(sibling, right)
 		}
 	}
@@ -366,16 +367,16 @@ func (pc *PeriodCollection) deleteRepairCase3(n *node) {
 // rotates to move the sibling up.
 func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 	sibling := n.sibling()
-	if !sibling.leaf && sibling.nodeColor() == black {
-		if sibling.left.nodeColor() == red && !n.isLeftChild() {
-			sibling.left.color = black
-			sibling.color = n.parent.color
-			n.parent.color = black
+	if !sibling.Leaf && sibling.nodeColor() == black {
+		if sibling.Left.nodeColor() == red && !n.isLeftChild() {
+			sibling.Left.Color = black
+			sibling.Color = n.parent.Color
+			n.parent.Color = black
 			pc.rotate(n.parent, right)
-		} else if sibling.right.nodeColor() == red && n.isLeftChild() {
-			sibling.right.color = black
-			sibling.color = n.parent.color
-			n.parent.color = black
+		} else if sibling.Right.nodeColor() == red && n.isLeftChild() {
+			sibling.Right.Color = black
+			sibling.Color = n.parent.Color
+			n.parent.Color = black
 			pc.rotate(n.parent, left)
 		}
 	}
@@ -396,7 +397,7 @@ func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContent
 		pc.insert(key, newPeriod, newContents)
 		return
 	}
-	if oldNode.period.Equals(newPeriod) {
+	if oldNode.Period.Equals(newPeriod) {
 		// if the period hasn't changed, just swap the contents
 		oldNode.contents = newContents
 		return
@@ -415,16 +416,16 @@ func (pc *PeriodCollection) ContainsTime(time time.Time) bool {
 
 // containsTime is the internal function that recursively searches the tree for the supplied time.
 func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
-	if root.leaf {
+	if root.Leaf {
 		return false
 	}
-	if root.period.ContainsTime(time, false) {
+	if root.Period.ContainsTime(time, false) {
 		return true
 	}
-	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {
-		return pc.containsTime(root.left, time)
+	if !root.Left.Leaf && (root.Left.MaxEnd.After(time) || root.Left.MaxEnd.IsZero()) {
+		return pc.containsTime(root.Left, time)
 	}
-	return pc.containsTime(root.right, time)
+	return pc.containsTime(root.Right, time)
 }
 
 // Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
@@ -434,7 +435,7 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	results := make([]interface{}, 0, len(pc.nodes))
-	if pc.root.leaf {
+	if pc.root.Leaf {
 		return results
 	}
 	pc.intersecting(query, pc.root, &results)
@@ -444,14 +445,14 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 // intersecting is the internal function that recursively searches the tree and adds all node contents to results.
 // This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
 func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
-	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
-		pc.intersecting(query, root.left, results)
+	if !root.Left.Leaf && (root.Left.MaxEnd.After(query.Start) || root.Left.MaxEnd.IsZero()) {
+		pc.intersecting(query, root.Left, results)
 	}
-	if root.period.Intersects(query) {
+	if root.Period.Intersects(query) {
 		*results = append(*results, root.contents)
 	}
-	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) {
-		pc.intersecting(query, root.right, results)
+	if !root.Right.Leaf && (root.Right.MaxEnd.After(query.Start) || root.Right.MaxEnd.IsZero()) {
+		pc.intersecting(query, root.Right, results)
 	}
 }
 
@@ -461,7 +462,7 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]in
 func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	if pc.root.leaf {
+	if pc.root.Leaf {
 		return false
 	}
 	return pc.anyIntersecting(query, pc.root)
@@ -470,14 +471,14 @@ func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
 // anyIntersecting is the internal function that recursively searches the tree and notifies the caller on the
 // found channel whether or not it has found an intersection.
 func (pc *PeriodCollection) anyIntersecting(query Period, root *node) bool {
-	if root.period.Intersects(query) {
+	if root.Period.Intersects(query) {
 		return true
 	}
-	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
-		return pc.anyIntersecting(query, root.left)
+	if !root.Left.Leaf && (root.Left.MaxEnd.After(query.Start) || root.Left.MaxEnd.IsZero()) {
+		return pc.anyIntersecting(query, root.Left)
 	}
-	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) {
-		return pc.anyIntersecting(query, root.right)
+	if !root.Right.Leaf && (root.Right.MaxEnd.After(query.Start) || root.Right.MaxEnd.IsZero()) {
+		return pc.anyIntersecting(query, root.Right)
 	}
 	return false
 }
@@ -502,17 +503,17 @@ func (pc *PeriodCollection) DepthFirstTraverse(order TraversalOrder) []interface
 
 // depthFirstTraverse is the internal recursive function for traversing the interval tree.
 func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, visitedContents *[]interface{}) {
-	if n.leaf {
+	if n.Leaf {
 		return
 	}
 	if order == PreOrder {
 		*visitedContents = append(*visitedContents, n.contents)
 	}
-	pc.depthFirstTraverse(n.left, order, visitedContents)
+	pc.depthFirstTraverse(n.Left, order, visitedContents)
 	if order == InOrder {
 		*visitedContents = append(*visitedContents, n.contents)
 	}
-	pc.depthFirstTraverse(n.right, order, visitedContents)
+	pc.depthFirstTraverse(n.Right, order, visitedContents)
 	if order == PostOrder {
 		*visitedContents = append(*visitedContents, n.contents)
 	}
@@ -576,4 +577,14 @@ func (u Update) execute() {
 // execute the delete on the tree
 func (d Delete) execute() {
 	d.pc.delete(d.key)
+}
+
+func (pc *PeriodCollection) NodeDebug() string {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	treeJson, err := json.Marshal(pc.root)
+	if err != nil {
+		return fmt.Sprintf("error marshalling tree %v", err.Error())
+	}
+	return string(treeJson)
 }
