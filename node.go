@@ -106,8 +106,11 @@ func (n *node) successor() *node {
 	return parent
 }
 
-// maxEndOfSubtree returns the latest end time of the node's subtree.
+// maxEndOfSubtree returns the latest end time of the node and its subtree.
 func (n *node) maxEndOfSubtree() time.Time {
+	if n.period.End.IsZero() {
+		return time.Time{}
+	}
 	if n.left.leaf && n.right.leaf {
 		return n.period.End
 	}
@@ -126,7 +129,7 @@ func (n *node) maxEndOfSubtree() time.Time {
 	if n.right.maxEnd.IsZero() || n.left.maxEnd.IsZero() {
 		return time.Time{}
 	}
-	return MaxTime(n.period.End, MaxTime(n.left.maxEnd, n.right.maxEnd))
+	return MaxTime(n.period.End, n.left.maxEnd, n.right.maxEnd)
 }
 
 // periodToLeft decides whether a period belongs to the left of the node.
