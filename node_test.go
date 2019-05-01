@@ -190,6 +190,10 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 			"node with left and right children where one node's max end is unbounded on the right returns the zero time",
 			j,
 			time.Time{},
+		}, {
+			"node with zero end time returns zero",
+			newNode(Period{time.Unix(20, 0), time.Time{}}, nil, nil, black),
+			time.Time{},
 		},
 	}
 	for _, test := range tests {
