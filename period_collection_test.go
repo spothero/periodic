@@ -1527,7 +1527,7 @@ func TestPeriodCollection_ContainsTime(t *testing.T) {
 			for i, p := range test.periods {
 				require.NoError(t, pc.Insert(i, p, nil))
 			}
-			assert.Equal(t, test.expectedOutcome, pc.ContainsTime(test.query))
+			assert.Equal(t, test.expectedOutcome, pc.AnyContainsTime(test.query))
 		})
 	}
 }

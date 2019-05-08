@@ -406,15 +406,15 @@ func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContent
 	pc.insert(key, newPeriod, newContents)
 }
 
-// ContainsTime returns whether there is any stored period that contains the supplied time.
-func (pc *PeriodCollection) ContainsTime(time time.Time) bool {
+// AnyContainsTime returns whether there is any stored period that contains the supplied time.
+func (pc *PeriodCollection) AnyContainsTime(time time.Time) bool {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	return pc.containsTime(pc.root, time)
+	return pc.anyContainsTime(pc.root, time)
 }
 
-// containsTime is the internal function that recursively searches the tree for the supplied time.
-func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
+// anyContainsTime is the internal function that recursively searches the tree for the supplied time.
+func (pc *PeriodCollection) anyContainsTime(root *node, time time.Time) bool {
 	if root.leaf {
 		return false
 	}
@@ -422,9 +422,9 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 		return true
 	}
 	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {
-		return pc.containsTime(root.left, time)
+		return pc.anyContainsTime(root.left, time)
 	}
-	return pc.containsTime(root.right, time)
+	return pc.anyContainsTime(root.right, time)
 }
 
 // Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
