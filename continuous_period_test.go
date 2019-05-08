@@ -92,6 +92,18 @@ func TestContinuousPeriod_AtDate(t *testing.T) {
 			NewPeriod(time.Date(2018, 11, 17, 1, 0, 0, 0, time.UTC), time.Date(2018, 11, 19, 0, 0, 0, 0, time.UTC)),
 			NewContinuousPeriod(time.Hour, 0, time.Saturday, time.Monday, time.UTC),
 			time.Date(2018, 11, 17, 0, 30, 0, 0, time.UTC),
+		}, {
+			"CP spanning dst fallback returns correct period",
+			// DST change on 2019-11-03
+			NewPeriod(time.Date(2019, 11, 1, 6, 0, 0, 0, chiTz), time.Date(2019, 11, 4, 0, 0, 0, 0, chiTz)),
+			NewContinuousPeriod(6*time.Hour, 0, time.Friday, time.Monday, chiTz),
+			time.Date(2019, 11, 2, 0, 0, 0, 0, chiTz),
+		}, {
+			"CP spanning dst spring forward returns correct period",
+			// DST change on 2019-03-10
+			NewPeriod(time.Date(2019, 3, 8, 6, 0, 0, 0, chiTz), time.Date(2019, 3, 11, 0, 0, 0, 0, chiTz)),
+			NewContinuousPeriod(6*time.Hour, 0, time.Friday, time.Monday, chiTz),
+			time.Date(2019, 3, 9, 0, 0, 0, 0, chiTz),
 		},
 	}
 	for _, test := range tests {
