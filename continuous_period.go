@@ -100,22 +100,23 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	}
 
+	var endDay time.Time
 	if cp.EndDOW > cp.StartDOW {
-		endDay := startDay.Add(time.Duration(HoursInDay*(cp.EndDOW-cp.StartDOW)) * time.Hour)
-		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
-		offsetDate.End = offsetDate.End.Add(cp.End)
+		endDay = startDay.Add(time.Duration(HoursInDay*(cp.EndDOW-cp.StartDOW)) * time.Hour)
 	} else if cp.EndDOW < cp.StartDOW {
-		endDay := startDay.Add(time.Duration(HoursInDay*((DaysInWeek-cp.StartDOW)+cp.EndDOW)) * time.Hour)
-		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
-		offsetDate.End = offsetDate.End.Add(cp.End)
+		endDay = startDay.Add(time.Duration(HoursInDay*((DaysInWeek-cp.StartDOW)+cp.EndDOW)) * time.Hour)
 	} else {
-		endDay := startDay
+		endDay = startDay
 		if cp.Start >= cp.End {
 			endDay = endDay.Add(time.Duration(DaysInWeek*HoursInDay) * time.Hour)
 		}
-		offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
-		offsetDate.End = offsetDate.End.Add(cp.End)
 	}
+	_, startOffset := startDay.Zone()
+	_, endOffset := endDay.Zone()
+	endDay = endDay.Add(time.Duration(startOffset-endOffset) * time.Second)
+	offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
+	offsetDate.End = offsetDate.End.Add(cp.End)
+
 	return offsetDate
 }
 
