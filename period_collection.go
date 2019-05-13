@@ -406,15 +406,15 @@ func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContent
 	pc.insert(key, newPeriod, newContents)
 }
 
-// ContainsTime returns whether there is any stored period that contains the supplied time.
-func (pc *PeriodCollection) ContainsTime(time time.Time) bool {
+// AnyContainsTime returns whether there is any stored period that contains the supplied time.
+func (pc *PeriodCollection) AnyContainsTime(time time.Time) bool {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	return pc.containsTime(pc.root, time)
+	return pc.anyContainsTime(pc.root, time)
 }
 
-// containsTime is the internal function that recursively searches the tree for the supplied time.
-func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
+// anyContainsTime is the internal function that recursively searches the tree for the supplied time.
+func (pc *PeriodCollection) anyContainsTime(root *node, time time.Time) bool {
 	if root.leaf {
 		return false
 	}
@@ -422,36 +422,85 @@ func (pc *PeriodCollection) containsTime(root *node, time time.Time) bool {
 		return true
 	}
 	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {
-		return pc.containsTime(root.left, time)
+		return pc.anyContainsTime(root.left, time)
 	}
-	return pc.containsTime(root.right, time)
+	return pc.anyContainsTime(root.right, time)
+}
+
+// traverser is an interface used for traversing a periodic collection and returning the contents of all objects that
+// satisfy the defined condition. branchCondition is used to determine whether the branch at the given node should
+// be traversed. selectNode defines the condition that a node must satisfy to be selected and returned.
+type traverser interface {
+	branchCondition(node *node) bool
+	selectNode(node *node) bool
+}
+
+// containsTimeTraverser implements the traverser interface and is used to return the contents of
+// all objects whose associated periods contain the supplied time.
+type containsTimeTraverser struct {
+	time time.Time
+}
+
+func (ct containsTimeTraverser) branchCondition(node *node) bool {
+	return node.maxEnd.After(ct.time) || node.maxEnd.IsZero()
+}
+
+func (ct containsTimeTraverser) selectNode(node *node) bool {
+	return node.period.ContainsTime(ct.time, false)
+}
+
+// ContainsTime will find and return the contents of all objects in a periodic collection that contain the given time.
+func (pc *PeriodCollection) ContainsTime(time time.Time) []interface{} {
+	return pc.traverse(containsTimeTraverser{time: time})
+}
+
+// intersectTraverser implements the traverser interface and is used to find and return the contents of
+// all objects whose associated periods intersect the query period.
+type intersectTraverser struct {
+	query Period
+}
+
+func (it intersectTraverser) branchCondition(node *node) bool {
+	return node.maxEnd.After(it.query.Start) || node.maxEnd.IsZero()
+}
+
+func (it intersectTraverser) selectNode(node *node) bool {
+	return node.period.Intersects(it.query)
 }
 
 // Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
 // Period intersection is inclusive on the start time but exclusive on the end time. The results returned by
 // Intersecting are sorted in ascending order by the associated period's start time.
 func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
+	return pc.traverse(intersectTraverser{query: query})
+}
+
+// traverse will traverse a periodic collection return the contents of all objects that satisfy a condition defined
+// by the traverser
+func (pc *PeriodCollection) traverse(traverser traverser) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	results := make([]interface{}, 0, len(pc.nodes))
 	if pc.root.leaf {
 		return results
 	}
-	pc.intersecting(query, pc.root, &results)
+	pc.traverseRecursive(traverser, pc.root, &results)
 	return results
 }
 
-// intersecting is the internal function that recursively searches the tree and adds all node contents to results.
+// traverseRecursive is the recursive step of traverse that will determine which branches should be traversed in the
+// periodic collection based on the supplied conditions in the traverser, and will return the contents of all objects
+// that satisfy the condition defined by the traverser.
 // This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
-func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
-	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
-		pc.intersecting(query, root.left, results)
+func (pc *PeriodCollection) traverseRecursive(traverser traverser, root *node, results *[]interface{}) {
+	if !root.left.leaf && traverser.branchCondition(root.left) {
+		pc.traverseRecursive(traverser, root.left, results)
 	}
-	if root.period.Intersects(query) {
+	if traverser.selectNode(root) {
 		*results = append(*results, root.contents)
 	}
-	if !root.right.leaf && (root.right.maxEnd.After(query.Start) || root.right.maxEnd.IsZero()) {
-		pc.intersecting(query, root.right, results)
+	if !root.right.leaf && traverser.branchCondition(root.right) {
+		pc.traverseRecursive(traverser, root.right, results)
 	}
 }
 

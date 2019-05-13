@@ -1463,7 +1463,7 @@ func TestPeriodCollection_deleteRepairCase4(t *testing.T) {
 	}
 }
 
-func TestPeriodCollection_ContainsTime(t *testing.T) {
+func TestPeriodCollection_AnyContainsTime(t *testing.T) {
 	periods := []Period{
 		NewPeriod(time.Date(2018, 12, 6, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)),
 		NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
@@ -1527,7 +1527,71 @@ func TestPeriodCollection_ContainsTime(t *testing.T) {
 			for i, p := range test.periods {
 				require.NoError(t, pc.Insert(i, p, nil))
 			}
-			assert.Equal(t, test.expectedOutcome, pc.ContainsTime(test.query))
+			assert.Equal(t, test.expectedOutcome, pc.AnyContainsTime(test.query))
+		})
+	}
+}
+
+func TestPeriodCollection_ContainsTime(t *testing.T) {
+	nodes := []struct {
+		contents string
+		period   Period
+	}{
+		{"a", NewPeriod(time.Date(2018, 12, 5, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC))},
+		{"b", NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC))},
+		{"c", NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Time{})},
+	}
+	pc := NewPeriodCollection()
+	for i, n := range nodes {
+		require.NoError(t, pc.Insert(i, n.period, n.contents))
+	}
+	tests := []struct {
+		name             string
+		setupCollection  func() *PeriodCollection
+		time             time.Time
+		expectedContents []interface{}
+	}{
+		{
+			"2018-12-05 00:00 contained in period a",
+			func() *PeriodCollection {
+				return pc
+			},
+			time.Date(2018, 12, 5, 0, 0, 0, 0, time.UTC),
+			[]interface{}{"a"},
+		}, {
+			"2018-12-05 12:00 contained in period a",
+			func() *PeriodCollection {
+				return pc
+			},
+			time.Date(2018, 12, 5, 12, 0, 0, 0, time.UTC),
+			[]interface{}{"a"},
+		}, {
+			"2018-12-07 00:00 contained in period b",
+			func() *PeriodCollection {
+				return pc
+			},
+			time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC),
+			[]interface{}{"b"},
+		}, {
+			"2018-12-07 16:00 contained in periods b and c",
+			func() *PeriodCollection {
+				return pc
+			},
+			time.Date(2018, 12, 7, 16, 0, 0, 0, time.UTC),
+			[]interface{}{"b", "c"},
+		}, {
+			"2018-12-04 00:00 not contained in any periods",
+			func() *PeriodCollection {
+				return pc
+			},
+			time.Date(2018, 12, 4, 0, 0, 0, 0, time.UTC),
+			[]interface{}{},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			collection := test.setupCollection()
+			assert.Equal(t, test.expectedContents, collection.ContainsTime(test.time))
 		})
 	}
 }
