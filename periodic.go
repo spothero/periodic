@@ -200,10 +200,9 @@ func MonStartToSunStart(dow int) (time.Weekday, error) {
 	return time.Sunday, fmt.Errorf("unknown day of week")
 }
 
-// TimeApplicable determines if the given timestamp is valid on the associated day of the week in a given timezone
-func (ad ApplicableDays) TimeApplicable(t time.Time, location *time.Location) bool {
-	wd := t.In(location).Weekday()
-	switch wd {
+// DayApplicable returns whether the given weekday is contained within the set of applicable days.
+func (ad ApplicableDays) DayApplicable(d time.Weekday) bool {
+	switch d {
 	case time.Sunday:
 		return ad.Sunday
 	case time.Monday:
@@ -216,9 +215,16 @@ func (ad ApplicableDays) TimeApplicable(t time.Time, location *time.Location) bo
 		return ad.Thursday
 	case time.Friday:
 		return ad.Friday
-	default:
+	case time.Saturday:
 		return ad.Saturday
 	}
+	return false
+}
+
+// TimeApplicable determines if the given timestamp is valid on the associated day of the week in a given timezone
+func (ad ApplicableDays) TimeApplicable(t time.Time, location *time.Location) bool {
+	wd := t.In(location).Weekday()
+	return ad.DayApplicable(wd)
 }
 
 // AnyApplicable returns whether or not there are any weekdays that are applicable.
