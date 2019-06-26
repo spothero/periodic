@@ -472,6 +472,30 @@ func TestNewApplicableDaysMonStart(t *testing.T) {
 	}
 }
 
+func TestApplicableDays_DayApplicable(t *testing.T) {
+	allApplicable := ApplicableDays{
+		Monday:    true,
+		Tuesday:   true,
+		Wednesday: true,
+		Thursday:  true,
+		Friday:    true,
+		Saturday:  true,
+		Sunday:    true,
+	}
+	for i := 0; i < DaysInWeek; i++ {
+		day := time.Weekday(i)
+		t.Run(fmt.Sprintf("%v applicable", day.String()), func(t *testing.T) {
+			assert.True(t, allApplicable.DayApplicable(day))
+		})
+		t.Run(fmt.Sprintf("%v not applicable", day.String()), func(t *testing.T) {
+			assert.False(t, ApplicableDays{}.DayApplicable(day))
+		})
+	}
+	t.Run("invalid weekday not applicable", func(t *testing.T) {
+		assert.False(t, allApplicable.DayApplicable(time.Weekday(8)))
+	})
+}
+
 func TestApplicableDays_TimeApplicable(t *testing.T) {
 	chiTZ, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
