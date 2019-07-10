@@ -669,8 +669,8 @@ func TestPeriod_IsZero(t *testing.T) {
 
 func TestMergePeriods(t *testing.T) {
 	tests := []struct {
-		name    string
-		periods []Period
+		name     string
+		periods  []Period
 		expected []Period
 	}{
 		{
@@ -686,7 +686,7 @@ func TestMergePeriods(t *testing.T) {
 			"empty array returns empty array",
 			[]Period{},
 			[]Period{},
-		},{
+		}, {
 			"array with same time periods are merged into one",
 			[]Period{
 				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
@@ -696,7 +696,7 @@ func TestMergePeriods(t *testing.T) {
 			[]Period{
 				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
 			},
-		},{
+		}, {
 			"unsorted array is merged correctly",
 			[]Period{
 				NewPeriod(time.Unix(90, 0), time.Unix(110, 0)),
