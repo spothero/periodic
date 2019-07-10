@@ -666,3 +666,92 @@ func TestPeriod_IsZero(t *testing.T) {
 		})
 	}
 }
+
+func TestMergePeriods(t *testing.T) {
+	tests := []struct {
+		name     string
+		periods  []Period
+		expected []Period
+	}{
+		{
+			"two overlapping periods returns single merged period",
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+				NewPeriod(time.Unix(40, 0), time.Unix(90, 0)),
+			},
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(90, 0)),
+			},
+		}, {
+			"empty array returns empty array",
+			[]Period{},
+			[]Period{},
+		}, {
+			"array with same time periods are merged into one",
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			},
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			},
+		}, {
+			"unsorted array is merged correctly",
+			[]Period{
+				NewPeriod(time.Unix(90, 0), time.Unix(110, 0)),
+				NewPeriod(time.Unix(50, 0), time.Unix(100, 0)),
+				NewPeriod(time.Unix(60, 0), time.Unix(70, 0)),
+			},
+			[]Period{
+				NewPeriod(time.Unix(50, 0), time.Unix(110, 0)),
+			},
+		}, {
+			"non-overlapping periods are not merged",
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
+				NewPeriod(time.Unix(40, 0), time.Unix(50, 0)),
+				NewPeriod(time.Unix(60, 0), time.Unix(70, 0)),
+			},
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
+				NewPeriod(time.Unix(40, 0), time.Unix(50, 0)),
+				NewPeriod(time.Unix(60, 0), time.Unix(70, 0)),
+			},
+		}, {
+			"periods with start equal to end are merged",
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
+				NewPeriod(time.Unix(30, 0), time.Unix(50, 0)),
+			},
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			},
+		}, {
+			"some overlapping and some non-overlapping are partially merged",
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(40, 0)),
+				NewPeriod(time.Unix(30, 0), time.Unix(50, 0)),
+				NewPeriod(time.Unix(70, 0), time.Unix(90, 0)),
+			},
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+				NewPeriod(time.Unix(70, 0), time.Unix(90, 0)),
+			},
+		}, {
+			"single input period returns single output period",
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(40, 0)),
+			},
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(40, 0)),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(
+				t, test.expected, MergePeriods(test.periods))
+		})
+	}
+}
