@@ -17,6 +17,7 @@ package periodic
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"time"
 )
 
@@ -248,4 +249,27 @@ func NewApplicableDaysMonStart(startDay int, endDay int) ApplicableDays {
 		v.Field(i).SetBool(dayApplicable)
 	}
 	return *applicableDays
+}
+
+// MergePeriods accepts an array of time periods and will return a new list with intersecting periods merged together
+func MergePeriods(periods []Period) []Period {
+	sort.Slice(periods, func(i, j int) bool {
+		return periods[i].Start.Before(periods[j].Start)
+	})
+	merged := make([]Period, 0, len(periods))
+	for _, period := range periods {
+		// If the merged array is empty, simply add the current period and skip to the next iteration
+		if len(merged) == 0 {
+			merged = append(merged, period)
+			continue
+		}
+		// If the last merged period does not intersect the current period, add the current period to the merged
+		// array. If they DO intersect, merge the periods by updating the end time of the last merged period.
+		if merged[len(merged)-1].End.Before(period.Start) {
+			merged = append(merged, period)
+		} else {
+			merged[len(merged)-1].End = MaxTime(merged[len(merged)-1].End, period.End)
+		}
+	}
+	return merged
 }
