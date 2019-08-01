@@ -280,8 +280,11 @@ func (pc *PeriodCollection) deleteNode(n *node) {
 	}
 	n.period, n.key, n.contents = y.period, y.key, y.contents
 
-	if z.parent != nil {
-		z.parent.maxEnd = z.parent.maxEndOfSubtree()
+	// update maxEnd all the way up the tree
+	parent := z.parent
+	for parent != nil {
+		parent.maxEnd = parent.maxEndOfSubtree()
+		parent = parent.parent
 	}
 	n.maxEnd = n.maxEndOfSubtree()
 

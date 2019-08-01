@@ -942,7 +942,7 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 			},
 		},
 		{
-			/* RR is red, the rest are black; after deleting N, all are black
+			/* RL is red, the rest are black; after deleting N, all are black
 			  N          RL
 			 / \        / \
 			L   R  ->  L   R
@@ -999,6 +999,43 @@ func TestPeriodCollection_deleteNode(t *testing.T) {
 				assert.Equal(t, time.Unix(20, 0), pc.root.maxEnd)
 				assert.NotContains(t, pc.nodes, 2)
 				assert.Len(t, pc.nodes, 1)
+			},
+		}, {
+			/* P, L, and R are black, N is red; N has the earliest start and latest end;
+			   after deleting N, maxEnd is updated all the way up to P.
+			    P           P
+			   / \         / \
+			  L   R  ->   L   R
+			 /
+			N
+			*/
+			"maxend property correctly propagates up the tree",
+			func() (*PeriodCollection, *node) {
+				p := newNode(Period{Start: time.Unix(30, 0), End: time.Unix(40, 0)}, 1, "p", black)
+				l := newNode(Period{Start: time.Unix(20, 0), End: time.Unix(25, 0)}, 2, "l", black)
+				r := newNode(Period{Start: time.Unix(50, 0), End: time.Unix(60, 0)}, 3, "r", black)
+				n := newNode(Period{Start: time.Unix(10, 0), End: time.Unix(70, 0)}, 4, "n", red)
+				p.left, p.right, p.maxEnd = l, r, n.period.End
+				l.left, l.parent, l.maxEnd = n, p, n.period.End
+				r.parent, r.maxEnd = p, r.period.End
+				n.parent, n.maxEnd = l, n.period.End
+				return &PeriodCollection{
+					root:  p,
+					nodes: map[interface{}]*node{1: p, 2: l, 3: r, 4: n},
+				}, n
+			},
+			func(t *testing.T, pc *PeriodCollection) {
+				assert.Equal(t, "p", pc.root.contents)
+				assert.Equal(t, black, pc.root.color)
+				assert.Equal(t, "l", pc.root.left.contents)
+				assert.Equal(t, black, pc.root.left.color)
+				assert.Equal(t, "r", pc.root.right.contents)
+				assert.Equal(t, black, pc.root.right.color)
+				assert.True(t, pc.root.left.left.leaf)
+				assert.Equal(t, time.Unix(25, 0), pc.root.left.maxEnd)
+				assert.Equal(t, time.Unix(60, 0), pc.root.maxEnd)
+				assert.NotContains(t, pc.nodes, 4)
+				assert.Len(t, pc.nodes, 3)
 			},
 		},
 	}
