@@ -483,7 +483,7 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 func (pc *PeriodCollection) traverse(traverser traverser) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	results := make([]interface{}, 0, len(pc.nodes))
+	results := make([]interface{}, 0)
 	if pc.root.leaf {
 		return results
 	}
