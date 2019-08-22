@@ -444,17 +444,17 @@ type containsTimeTraverser struct {
 	time time.Time
 }
 
-func (ct containsTimeTraverser) branchCondition(node *node) bool {
+func (ct *containsTimeTraverser) branchCondition(node *node) bool {
 	return node.maxEnd.After(ct.time) || node.maxEnd.IsZero()
 }
 
-func (ct containsTimeTraverser) selectNode(node *node) bool {
+func (ct *containsTimeTraverser) selectNode(node *node) bool {
 	return node.period.ContainsTime(ct.time, false)
 }
 
 // ContainsTime will find and return the contents of all objects in a periodic collection that contain the given time.
 func (pc *PeriodCollection) ContainsTime(time time.Time) []interface{} {
-	return pc.traverse(containsTimeTraverser{time: time})
+	return pc.traverse(&containsTimeTraverser{time: time})
 }
 
 // intersectTraverser implements the traverser interface and is used to find and return the contents of
@@ -463,11 +463,11 @@ type intersectTraverser struct {
 	query Period
 }
 
-func (it intersectTraverser) branchCondition(node *node) bool {
+func (it *intersectTraverser) branchCondition(node *node) bool {
 	return node.maxEnd.After(it.query.Start) || node.maxEnd.IsZero()
 }
 
-func (it intersectTraverser) selectNode(node *node) bool {
+func (it *intersectTraverser) selectNode(node *node) bool {
 	return node.period.Intersects(it.query)
 }
 
@@ -475,7 +475,7 @@ func (it intersectTraverser) selectNode(node *node) bool {
 // Period intersection is inclusive on the start time but exclusive on the end time. The results returned by
 // Intersecting are sorted in ascending order by the associated period's start time.
 func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
-	return pc.traverse(intersectTraverser{query: query})
+	return pc.traverse(&intersectTraverser{query: query})
 }
 
 // traverse will traverse a periodic collection return the contents of all objects that satisfy a condition defined
@@ -483,7 +483,7 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 func (pc *PeriodCollection) traverse(traverser traverser) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	results := make([]interface{}, 0, len(pc.nodes))
+	results := make([]interface{}, 0)
 	if pc.root.leaf {
 		return results
 	}
