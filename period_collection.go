@@ -430,80 +430,65 @@ func (pc *PeriodCollection) anyContainsTime(root *node, time time.Time) bool {
 	return pc.anyContainsTime(root.right, time)
 }
 
-// traverser is an interface used for traversing a periodic collection and returning the contents of all objects that
-// satisfy the defined condition. branchCondition is used to determine whether the branch at the given node should
-// be traversed. selectNode defines the condition that a node must satisfy to be selected and returned.
-type traverser interface {
-	branchCondition(node *node) bool
-	selectNode(node *node) bool
-}
-
-// containsTimeTraverser implements the traverser interface and is used to return the contents of
-// all objects whose associated periods contain the supplied time.
-type containsTimeTraverser struct {
-	time time.Time
-}
-
-func (ct containsTimeTraverser) branchCondition(node *node) bool {
-	return node.maxEnd.After(ct.time) || node.maxEnd.IsZero()
-}
-
-func (ct containsTimeTraverser) selectNode(node *node) bool {
-	return node.period.ContainsTime(ct.time, false)
-}
-
 // ContainsTime will find and return the contents of all objects in a periodic collection that contain the given time.
 func (pc *PeriodCollection) ContainsTime(time time.Time) []interface{} {
-	return pc.traverse(containsTimeTraverser{time: time})
-}
-
-// intersectTraverser implements the traverser interface and is used to find and return the contents of
-// all objects whose associated periods intersect the query period.
-type intersectTraverser struct {
-	query Period
-}
-
-func (it intersectTraverser) branchCondition(node *node) bool {
-	return node.maxEnd.After(it.query.Start) || node.maxEnd.IsZero()
-}
-
-func (it intersectTraverser) selectNode(node *node) bool {
-	return node.period.Intersects(it.query)
-}
-
-// Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
-// Period intersection is inclusive on the start time but exclusive on the end time. The results returned by
-// Intersecting are sorted in ascending order by the associated period's start time.
-func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
-	return pc.traverse(intersectTraverser{query: query})
-}
-
-// traverse will traverse a periodic collection return the contents of all objects that satisfy a condition defined
-// by the traverser
-func (pc *PeriodCollection) traverse(traverser traverser) []interface{} {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	results := make([]interface{}, 0)
 	if pc.root.leaf {
 		return results
 	}
-	pc.traverseRecursive(traverser, pc.root, &results)
+	pc.containsTime(time, pc.root, &results)
 	return results
 }
 
-// traverseRecursive is the recursive step of traverse that will determine which branches should be traversed in the
-// periodic collection based on the supplied conditions in the traverser, and will return the contents of all objects
-// that satisfy the condition defined by the traverser.
+// containsTime is the recursive step of ContainsTime that will determine which branches should be traversed in the
+// periodic collection and append the contents of all nodes that contain the queried time.
 // This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
-func (pc *PeriodCollection) traverseRecursive(traverser traverser, root *node, results *[]interface{}) {
-	if !root.left.leaf && traverser.branchCondition(root.left) {
-		pc.traverseRecursive(traverser, root.left, results)
+func (pc *PeriodCollection) containsTime(time time.Time, root *node, results *[]interface{}) {
+	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {
+		pc.containsTime(time, root.left, results)
 	}
-	if traverser.selectNode(root) {
+	if root.period.ContainsTime(time, false) {
 		*results = append(*results, root.contents)
 	}
-	if !root.right.leaf && traverser.branchCondition(root.right) {
-		pc.traverseRecursive(traverser, root.right, results)
+	// The current node (root) has the earliest start time of any node in the right subtree.
+	// If the period root.period.Start to root.right.maxEnd does not contain the queried time, it is guaranteed
+	// that there are no nodes in the right subtree that contain the time so the traversal can be skipped.
+	if !root.right.leaf && NewPeriod(root.period.Start, root.right.maxEnd).ContainsTime(time, false) {
+		pc.containsTime(time, root.right, results)
+	}
+}
+
+// Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
+// Period intersection is inclusive on the start time but exclusive on the end time. The results returned by
+// Intersecting are sorted in ascending order by the associated period's start time.
+func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
+	pc.mutex.RLock()
+	defer pc.mutex.RUnlock()
+	results := make([]interface{}, 0)
+	if pc.root.leaf {
+		return results
+	}
+	pc.intersecting(query, pc.root, &results)
+	return results
+}
+
+// intersecting is the recursive step of Intersecting that will determine which branches should be traversed in the
+// periodic collection and append the contents of all nodes that intersect the queried period.
+// This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
+func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
+	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
+		pc.intersecting(query, root.left, results)
+	}
+	if root.period.Intersects(query) {
+		*results = append(*results, root.contents)
+	}
+	// The current node (root) has the earliest start time of any node in the right subtree.
+	// If the period root.period.Start to root.right.maxEnd does not intersect the queried period, it is guaranteed
+	// that there are no nodes in the right subtree that intersect the period so the traversal can be skipped.
+	if !root.right.leaf && NewPeriod(root.period.Start, root.right.maxEnd).Intersects(query) {
+		pc.intersecting(query, root.right, results)
 	}
 }
 
