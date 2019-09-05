@@ -442,6 +442,9 @@ func (pc *PeriodCollection) ContainsTime(time time.Time) []interface{} {
 	return results
 }
 
+// containsTime is the recursive step of ContainsTime that will determine which branches should be traversed in the
+// periodic collection and append the contents of all nodes that contain the queried time.
+// This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
 func (pc *PeriodCollection) containsTime(time time.Time, root *node, results *[]interface{}) {
 	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {
 		pc.containsTime(time, root.left, results)
@@ -449,6 +452,9 @@ func (pc *PeriodCollection) containsTime(time time.Time, root *node, results *[]
 	if root.period.ContainsTime(time, false) {
 		*results = append(*results, root.contents)
 	}
+	// The current node (root) has the earliest start time of any node in the right subtree.
+	// If the period root.period.Start to root.right.maxEnd does not contain the queried time, it is guaranteed
+	// that there are no nodes in the right subtree that contain the time so the traversal can be skipped.
 	if !root.right.leaf && NewPeriod(root.period.Start, root.right.maxEnd).ContainsTime(time, false) {
 		pc.containsTime(time, root.right, results)
 	}
@@ -468,9 +474,8 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 	return results
 }
 
-// intersecting is the recursive step of traverseIntersect that will determine which branches should be traversed in the
-// periodic collection based on the supplied conditions in the traverser, and will return the contents of all objects
-// that satisfy the condition defined by the traverser.
+// intersecting is the recursive step of Intersecting that will determine which branches should be traversed in the
+// periodic collection and append the contents of all nodes that intersect the queried period.
 // This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
 func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
 	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
@@ -479,6 +484,9 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]in
 	if root.period.Intersects(query) {
 		*results = append(*results, root.contents)
 	}
+	// The current node (root) has the earliest start time of any node in the right subtree.
+	// If the period root.period.Start to root.right.maxEnd does not intersect the queried period, it is guaranteed
+	// that there are no nodes in the right subtree that intersect the period so the traversal can be skipped.
 	if !root.right.leaf && NewPeriod(root.period.Start, root.right.maxEnd).Intersects(query) {
 		pc.intersecting(query, root.right, results)
 	}
