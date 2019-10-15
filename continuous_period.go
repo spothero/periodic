@@ -85,6 +85,11 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 			offset = time.Duration(HoursInDay*(dLoc.Weekday()-(DaysInWeek+cp.StartDOW))) * time.Hour
 		}
 		startDay = dLoc.Add(-offset)
+		// Adjust the start day offset if there is a timezone difference between start day and the queried time.
+		_, dLocOffset := dLoc.Zone()
+		_, startDayOffset := startDay.Zone()
+		startDay = startDay.Add(time.Duration(dLocOffset-startDayOffset) * time.Second)
+
 		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
 		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	} else {
