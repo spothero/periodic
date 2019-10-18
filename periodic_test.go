@@ -785,7 +785,7 @@ func TestAddDSTAware(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(
-				t, test.expected, AddDSTAware(test.t, test.d))
+				t, test.expected, AddDSTAwareDuration(test.t, test.d))
 		})
 	}
 }
