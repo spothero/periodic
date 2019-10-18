@@ -755,3 +755,37 @@ func TestMergePeriods(t *testing.T) {
 		})
 	}
 }
+
+func TestAddDSTAware(t *testing.T) {
+	chiTz, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	tests := []struct {
+		name     string
+		t        time.Time
+		d        time.Duration
+		expected time.Time
+	}{
+		{
+			"result time with same timezone offset returns correct time",
+			time.Date(2019, 11, 1, 15, 0, 0, 0, chiTz),
+			24 * time.Hour,
+			time.Date(2019, 11, 2, 15, 0, 0, 0, chiTz),
+		}, {
+			"time in DST, result in non-DST returns correct time",
+			time.Date(2019, 11, 2, 15, 0, 0, 0, chiTz),
+			24 * time.Hour,
+			time.Date(2019, 11, 3, 15, 0, 0, 0, chiTz),
+		}, {
+			"time in non-DST, result in DST returns correct time",
+			time.Date(2019, 3, 9, 15, 0, 0, 0, chiTz),
+			24 * time.Hour,
+			time.Date(2019, 3, 10, 15, 0, 0, 0, chiTz),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(
+				t, test.expected, AddDSTAware(test.t, test.d))
+		})
+	}
+}
