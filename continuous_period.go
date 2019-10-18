@@ -84,14 +84,6 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 			// offset to the beginning of the next period
 			offset = time.Duration(HoursInDay*(dLoc.Weekday()-(DaysInWeek+cp.StartDOW))) * time.Hour
 		}
-		startDay = dLoc.Add(-offset)
-		// Adjust the start day offset if there is a timezone difference between start day and the queried time.
-		_, dLocOffset := dLoc.Zone()
-		_, startDayOffset := startDay.Zone()
-		startDay = startDay.Add(time.Duration(dLocOffset-startDayOffset) * time.Second)
-
-		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
-		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	} else {
 		if findCurrent {
 			// offset to the beginning of the current period or the start of the period on the same day
@@ -100,25 +92,22 @@ func (cp ContinuousPeriod) AtDate(d time.Time) Period {
 			// offset to the beginning of the next period
 			offset = time.Duration(HoursInDay*(dLoc.Weekday()-cp.StartDOW)) * time.Hour
 		}
-		startDay = dLoc.Add(-offset)
-		offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
-		offsetDate.Start = offsetDate.Start.Add(cp.Start)
 	}
+	startDay = AddDSTAwareDuration(dLoc, -offset)
+	offsetDate.Start = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, cp.Location)
+	offsetDate.Start = offsetDate.Start.Add(cp.Start)
 
 	var endDay time.Time
 	if cp.EndDOW > cp.StartDOW {
-		endDay = startDay.Add(time.Duration(HoursInDay*(cp.EndDOW-cp.StartDOW)) * time.Hour)
+		endDay = AddDSTAwareDuration(startDay, time.Duration(HoursInDay*(cp.EndDOW-cp.StartDOW))*time.Hour)
 	} else if cp.EndDOW < cp.StartDOW {
-		endDay = startDay.Add(time.Duration(HoursInDay*((DaysInWeek-cp.StartDOW)+cp.EndDOW)) * time.Hour)
+		endDay = AddDSTAwareDuration(startDay, time.Duration(HoursInDay*((DaysInWeek-cp.StartDOW)+cp.EndDOW))*time.Hour)
 	} else {
 		endDay = startDay
 		if cp.Start >= cp.End {
-			endDay = endDay.Add(time.Duration(DaysInWeek*HoursInDay) * time.Hour)
+			endDay = AddDSTAwareDuration(startDay, time.Duration(DaysInWeek*HoursInDay)*time.Hour)
 		}
 	}
-	_, startOffset := startDay.Zone()
-	_, endOffset := endDay.Zone()
-	endDay = endDay.Add(time.Duration(startOffset-endOffset) * time.Second)
 	offsetDate.End = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, cp.Location)
 	offsetDate.End = offsetDate.End.Add(cp.End)
 

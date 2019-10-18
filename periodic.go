@@ -273,3 +273,13 @@ func MergePeriods(periods []Period) []Period {
 	}
 	return merged
 }
+
+// AddDSTAwareDuration will add the given duration to the given time, adjusting for timezone offset changes due to DST and return
+// the resulting time. As an example, adding 24 hours to 2019-11-02 15:00:00 -0500 CST will result in 2019-11-02 15:00:00 -0600 CST,
+// whereas the time library Add method would result in 2019-11-03 14:00:00 -0600 CST because of the timezone offset change.
+func AddDSTAwareDuration(t time.Time, d time.Duration) time.Time {
+	result := t.Add(d)
+	_, tOffset := t.Zone()
+	_, resultOffset := result.Zone()
+	return result.Add(time.Duration(tOffset-resultOffset) * time.Second)
+}
