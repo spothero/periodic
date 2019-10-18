@@ -756,7 +756,7 @@ func TestMergePeriods(t *testing.T) {
 	}
 }
 
-func TestAddDSTAware(t *testing.T) {
+func TestAddDSTAwareDuration(t *testing.T) {
 	chiTz, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
 	tests := []struct {
