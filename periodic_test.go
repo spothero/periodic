@@ -789,3 +789,95 @@ func TestAddDSTAwareDuration(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriod_Difference(t *testing.T) {
+	tests := []struct {
+		name          string
+		period, other Period
+		expected      []Period
+	}{
+		{
+			"other intersects first part of period",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(5, 0), time.Unix(30, 0)),
+			[]Period{
+				NewPeriod(time.Unix(30, 0), time.Unix(50, 0)),
+			},
+		}, {
+			"other intersects first part of period, start times equal",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
+			[]Period{
+				NewPeriod(time.Unix(30, 0), time.Unix(50, 0)),
+			},
+		}, {
+			"other intersects second part of period",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(30, 0), time.Unix(70, 0)),
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
+			},
+		}, {
+			"other intersects second part of period, end times equal",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(30, 0), time.Unix(50, 0)),
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(30, 0)),
+			},
+		}, {
+			"other bisects period",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(20, 0), time.Unix(30, 0)),
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(20, 0)),
+				NewPeriod(time.Unix(30, 0), time.Unix(50, 0)),
+			},
+		}, {
+			"other bisects period, period end is 0",
+			NewPeriod(time.Unix(10, 0), time.Time{}),
+			NewPeriod(time.Unix(20, 0), time.Unix(30, 0)),
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(20, 0)),
+				NewPeriod(time.Unix(30, 0), time.Time{}),
+			},
+		}, {
+			"other bisects period, period start is 0",
+			NewPeriod(time.Time{}, time.Unix(50, 0)),
+			NewPeriod(time.Unix(20, 0), time.Unix(30, 0)),
+			[]Period{
+				NewPeriod(time.Time{}, time.Unix(20, 0)),
+				NewPeriod(time.Unix(30, 0), time.Unix(50, 0)),
+			},
+		}, {
+			"other intersects period, other end is 0",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(20, 0), time.Time{}),
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(20, 0)),
+			},
+		}, {
+			"other does not intersect period",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(60, 0), time.Unix(80, 0)),
+			[]Period{
+				NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			},
+		}, {
+			"other is equal to period",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			[]Period{},
+		}, {
+			"other envelops period",
+			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
+			NewPeriod(time.Unix(5, 0), time.Unix(60, 0)),
+			[]Period{},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(
+				t, test.expected, test.period.Difference(test.other))
+		})
+	}
+}

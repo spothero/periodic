@@ -152,6 +152,35 @@ func (p Period) IsZero() bool {
 	return p.Start.Sub(p.End) == 0
 }
 
+// Difference returns a slice representing the set difference of (p - other). In other words, it will return any
+// segments of p that are NOT in other. The possible scenarios and results are:
+// * the periods do not intersect - the slice will contain p.
+// * the periods intersect but are not fully overlapping - the slice will contain the subset of p that is not contained in other.
+// * p fully envelops other - the slice will contain 2 elements: the subsets of p before/after other.
+// * other fully envelops p - the slice will be empty
+func (p Period) Difference(other Period) []Period {
+	result := make([]Period, 0)
+	if p.Start.Before(other.Start) {
+		var end time.Time
+		if p.End.IsZero() {
+			end = other.Start
+		} else {
+			end = MinTime(p.End, other.Start)
+		}
+		result = append(result, NewPeriod(p.Start, end))
+	}
+	if (p.End.After(other.End) && !other.End.IsZero()) || p.End.IsZero() {
+		var start time.Time
+		if other.End.IsZero() {
+			start = p.Start
+		} else {
+			start = MaxTime(p.Start, other.End)
+		}
+		result = append(result, NewPeriod(start, p.End))
+	}
+	return result
+}
+
 // MaxTime returns the maximum of the provided times
 func MaxTime(times ...time.Time) time.Time {
 	if len(times) == 0 {
