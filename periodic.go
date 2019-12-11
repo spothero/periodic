@@ -169,14 +169,8 @@ func (p Period) Difference(other Period) []Period {
 		}
 		result = append(result, NewPeriod(p.Start, end))
 	}
-	if (p.End.After(other.End) && !other.End.IsZero()) || p.End.IsZero() {
-		var start time.Time
-		if other.End.IsZero() {
-			start = p.Start
-		} else {
-			start = MaxTime(p.Start, other.End)
-		}
-		result = append(result, NewPeriod(start, p.End))
+	if (p.End.After(other.End) || p.End.IsZero()) && !other.End.IsZero() {
+		result = append(result, NewPeriod(MaxTime(p.Start, other.End), p.End))
 	}
 	return result
 }

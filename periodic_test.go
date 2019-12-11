@@ -872,6 +872,16 @@ func TestPeriod_Difference(t *testing.T) {
 			NewPeriod(time.Unix(10, 0), time.Unix(50, 0)),
 			NewPeriod(time.Unix(5, 0), time.Unix(60, 0)),
 			[]Period{},
+		}, {
+			"period end is zero and other period end is zero, period start after other start",
+			NewPeriod(time.Unix(10, 0), time.Time{}),
+			NewPeriod(time.Unix(5, 0), time.Time{}),
+			[]Period{},
+		}, {
+			"period end is zero and other period end is zero, other start after period start",
+			NewPeriod(time.Unix(5, 0), time.Time{}),
+			NewPeriod(time.Unix(10, 0), time.Time{}),
+			[]Period{NewPeriod(time.Unix(5, 0), time.Unix(10, 0))},
 		},
 	}
 	for _, test := range tests {
