@@ -606,3 +606,46 @@ func TestFloatingPeriodConstructionError_Error(t *testing.T) {
 	assert.Error(t, f)
 	assert.Equal(t, "e", f.Error())
 }
+
+func TestTwelveHourDisplay(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    time.Duration
+		expected string
+	}{
+		{
+			"morning time is converted",
+			10 * time.Hour,
+			"10:00 AM",
+		}, {
+			"afternoon time is converted",
+			23 * time.Hour,
+			"11:00 PM",
+		}, {
+			"12:00 PM is converted",
+			12 * time.Hour,
+			"12:00 PM",
+		}, {
+			"12:00 AM is converted",
+			0 * time.Hour,
+			"12:00 AM",
+		}, {
+			"single digit morning hour is converted",
+			5 * time.Hour,
+			"5:00 AM",
+		}, {
+			"single digit afternoon hour is converted",
+			14 * time.Hour,
+			"2:00 PM",
+		}, {
+			"input in seconds is converted",
+			29400 * time.Second,
+			"8:10 AM",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, TwelveHourDisplay(test.input))
+		})
+	}
+}

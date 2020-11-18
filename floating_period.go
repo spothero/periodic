@@ -15,6 +15,7 @@
 package periodic
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -153,4 +154,27 @@ func (fp FloatingPeriod) ContainsEnd(period Period) bool {
 // DayApplicable returns whether or not the given time falls on a day during which the floating period is applicable.
 func (fp FloatingPeriod) DayApplicable(t time.Time) bool {
 	return fp.Days.TimeApplicable(t, fp.Location)
+}
+
+// TwelveHourDisplay returns the 12-hour clock display string for the supplied duration, assuming that the duration
+// represents the time since midnight. The return string is in the format hh:mm AM/PM with leading 0's removed. It is
+// expected that the input duration is less than 24 hours.
+func TwelveHourDisplay(d time.Duration) string {
+	h := d / time.Hour
+	d -= h * time.Hour
+	m := d / time.Minute
+	ampm := "AM"
+	if h == 0 {
+		// d represents the midnight hour, so set h to 12
+		h = 12
+	} else if h == 12 {
+		// d represents the noon hour, so set ampm to 'PM'
+		ampm = "PM"
+	} else if h > 12 {
+		// d represents an afternoon hour, so h must be adjusted by 12
+		// and ampm must be set to 'PM'
+		h -= 12
+		ampm = "PM"
+	}
+	return fmt.Sprintf("%d:%02d %s", h, m, ampm)
 }
