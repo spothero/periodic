@@ -251,6 +251,122 @@ func TestPeriod_ContainsAny(t *testing.T) {
 	}
 }
 
+func TestPeriod_Overlaps(t *testing.T) {
+	tests := []struct {
+		name           string
+		basePeriodStart        string
+		basePeriodEnd        string
+		otherPeriodStart        string
+		otherPeriodEnd        string
+		expectedResult bool
+	}{
+		{
+			name: "basePeriod ends before otherPeriod starts",
+			basePeriodStart: 	"2050-01-10T10:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T11:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T12:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T13:00:00-05:00",
+			expectedResult: false,
+		},
+		{
+			name: "basePeriod ends when otherPeriod starts",
+			basePeriodStart: 	"2050-01-10T10:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T11:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T11:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T12:00:00-05:00",
+			expectedResult: false,
+		},
+		{
+			name: "basePeriod ends after otherPeriod starts and before otherPeriod ends",
+			basePeriodStart: 	"2050-01-10T10:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T11:30:00-05:00",
+			otherPeriodStart:	"2050-01-10T11:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T12:00:00-05:00",
+			expectedResult: true,
+		},
+		{
+			name: "basePeriod starts earlier and ends at the same time",
+			basePeriodStart: 	"2050-01-10T10:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T13:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T12:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T13:00:00-05:00",
+			expectedResult: true,
+		},
+		{
+			name: "basePeriod starts before and ends after",
+			basePeriodStart: 	"2050-01-10T10:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T14:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T12:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T13:00:00-05:00",
+			expectedResult: true,
+		},
+		{
+			name: "basePeriod starts at same time and ends after",
+			basePeriodStart: 	"2050-01-10T10:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T14:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T10:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T13:00:00-05:00",
+			expectedResult: true,
+		},
+		{
+			name: "basePeriod starts when other ends",
+			basePeriodStart: 	"2050-01-10T13:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T14:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T10:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T13:00:00-05:00",
+			expectedResult: false,
+		},
+		{
+			name: "basePeriod starts after other ends",
+			basePeriodStart: 	"2050-01-10T13:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T14:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T10:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T12:00:00-05:00",
+			expectedResult: false,
+		},
+		{
+			name: "basePeriod starts and ends at the same time as other",
+			basePeriodStart: 	"2050-01-10T10:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T13:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T10:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T13:00:00-05:00",
+			expectedResult: true,
+		},
+		{
+			name: "basePeriod starts after and ends before",
+			basePeriodStart: 	"2050-01-10T11:00:00-05:00",
+			basePeriodEnd: 		"2050-01-10T12:00:00-05:00",
+			otherPeriodStart:	"2050-01-10T10:00:00-05:00",
+			otherPeriodEnd:		"2050-01-10T13:00:00-05:00",
+			expectedResult: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			start1, err := time.Parse(time.RFC3339, test.basePeriodStart)
+			require.NoError(t, err)
+			end1, err := time.Parse(time.RFC3339, test.basePeriodEnd)
+			require.NoError(t, err)
+			period1 := Period{
+				Start: start1,
+				End: end1,
+			}
+
+			start2, err := time.Parse(time.RFC3339, test.otherPeriodStart)
+			require.NoError(t, err)
+			end2, err := time.Parse(time.RFC3339, test.otherPeriodEnd)
+			require.NoError(t, err)
+			period2 := Period{
+				Start: start2,
+				End: end2,
+			}
+
+			assert.Equal(t, test.expectedResult, period1.Overlaps(period2))
+			assert.Equal(t, test.expectedResult, period2.Overlaps(period1))
+		})
+	}
+}
+
 func TestPeriod_Less(t *testing.T) {
 	tests := []struct {
 		name           string

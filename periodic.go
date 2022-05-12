@@ -113,6 +113,12 @@ func (p Period) ContainsAny(other Period) bool {
 	return s || e
 }
 
+// Overlaps determines whether two different periods overlap each other, regardless of direction. This differs slightly
+// from intersects in that the start from one period can share the same point in time as the end from the other.
+func (p Period) Overlaps(other Period) bool {
+	return p.ContainsAny(other) || other.ContainsAny(p)
+}
+
 // Less returns true if the duration of the period is less than the supplied duration
 func (p Period) Less(d time.Duration) bool {
 	return p.End.Sub(p.Start) < d
