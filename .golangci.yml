@@ -4,7 +4,7 @@ run:
 
 linters:
   enable:
-    - golint
+    - revive
     - gofmt
     - staticcheck
     - vet
