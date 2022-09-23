@@ -22,14 +22,14 @@ import (
 )
 
 func TestNode_isLeftChild(t *testing.T) {
-	root := &node{}
-	left := &node{parent: root}
-	right := &node{parent: root}
+	root := &node[int, any]{}
+	left := &node[int, any]{parent: root}
+	right := &node[int, any]{parent: root}
 	root.left = left
 	root.right = right
 	tests := []struct {
 		name     string
-		testNode *node
+		testNode *node[int, any]
 		outcome  bool
 	}{
 		{
@@ -54,15 +54,15 @@ func TestNode_isLeftChild(t *testing.T) {
 }
 
 func TestNode_sibling(t *testing.T) {
-	root := &node{}
-	left := &node{parent: root}
-	right := &node{parent: root}
+	root := &node[int, any]{}
+	left := &node[int, any]{parent: root}
+	right := &node[int, any]{parent: root}
 	root.left = left
 	root.right = right
 	tests := []struct {
 		name     string
-		testNode *node
-		outcome  *node
+		testNode *node[int, any]
+		outcome  *node[int, any]
 	}{
 		{
 			"root has no siblings",
@@ -88,25 +88,25 @@ func TestNode_sibling(t *testing.T) {
 func TestNode_nodeColor(t *testing.T) {
 	tests := []struct {
 		name  string
-		setup func() *node
+		setup func() *node[int, any]
 		color color
 	}{
 		{
 			"black node is black",
-			func() *node {
-				return &node{color: black}
+			func() *node[int, any] {
+				return &node[int, any]{color: black}
 			},
 			black,
 		}, {
 			"red node is red",
-			func() *node {
-				return &node{color: red}
+			func() *node[int, any] {
+				return &node[int, any]{color: red}
 			},
 			red,
 		}, {
 			"leaf node is black",
-			func() *node {
-				return &node{leaf: true}
+			func() *node[int, any] {
+				return &node[int, any]{leaf: true}
 			},
 			black,
 		},
@@ -126,11 +126,11 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 		 /     \
 		C       E
 	*/
-	a := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
-	b := newNode(Period{time.Unix(15, 0), time.Unix(25, 0)}, nil, nil, black)
-	c := newNode(Period{time.Unix(5, 0), time.Unix(45, 0)}, nil, nil, black)
-	d := newNode(Period{time.Unix(22, 0), time.Unix(101, 0)}, nil, nil, black)
-	e := newNode(Period{time.Unix(25, 0), time.Unix(100, 0)}, nil, nil, black)
+	a := newNode[int, any](Period{time.Unix(20, 0), time.Unix(30, 0)}, 0, nil, black)
+	b := newNode[int, any](Period{time.Unix(15, 0), time.Unix(25, 0)}, 0, nil, black)
+	c := newNode[int, any](Period{time.Unix(5, 0), time.Unix(45, 0)}, 0, nil, black)
+	d := newNode[int, any](Period{time.Unix(22, 0), time.Unix(101, 0)}, 0, nil, black)
+	e := newNode[int, any](Period{time.Unix(25, 0), time.Unix(100, 0)}, 0, nil, black)
 	a.left, a.right = b, d
 	b.left = c
 	d.right = e
@@ -140,26 +140,26 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 	d.maxEnd = d.period.End
 	e.maxEnd = e.period.End
 
-	f := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
-	g := newNode(Period{time.Unix(15, 0), time.Time{}}, nil, nil, black)
+	f := newNode[int, any](Period{time.Unix(20, 0), time.Unix(30, 0)}, 0, nil, black)
+	g := newNode[int, any](Period{time.Unix(15, 0), time.Time{}}, 0, nil, black)
 	f.left = g
 	g.maxEnd = g.period.End
 
-	h := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
-	i := newNode(Period{time.Unix(25, 0), time.Time{}}, nil, nil, black)
+	h := newNode[int, any](Period{time.Unix(20, 0), time.Unix(30, 0)}, 0, nil, black)
+	i := newNode[int, any](Period{time.Unix(25, 0), time.Time{}}, 0, nil, black)
 	h.right = i
 	h.maxEnd = h.period.End
 
-	j := newNode(Period{time.Unix(20, 0), time.Unix(30, 0)}, nil, nil, black)
-	k := newNode(Period{time.Unix(15, 0), time.Unix(25, 0)}, nil, nil, black)
-	l := newNode(Period{time.Unix(30, 0), time.Time{}}, nil, nil, black)
+	j := newNode[int, any](Period{time.Unix(20, 0), time.Unix(30, 0)}, 0, nil, black)
+	k := newNode[int, any](Period{time.Unix(15, 0), time.Unix(25, 0)}, 0, nil, black)
+	l := newNode[int, any](Period{time.Unix(30, 0), time.Time{}}, 0, nil, black)
 	j.left, j.right = k, l
 	k.maxEnd = k.period.End
 	j.maxEnd = j.period.End
 
 	tests := []struct {
 		name     string
-		node     *node
+		node     *node[int, any]
 		expected time.Time
 	}{
 		{
@@ -192,7 +192,7 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 			time.Time{},
 		}, {
 			"node with zero end time returns zero",
-			newNode(Period{time.Unix(20, 0), time.Time{}}, nil, nil, black),
+			newNode[int, any](Period{time.Unix(20, 0), time.Time{}}, 0, nil, black),
 			time.Time{},
 		},
 	}
@@ -204,7 +204,7 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 }
 
 func TestNode_periodToLeft(t *testing.T) {
-	n := &node{
+	n := &node[int, any]{
 		period: NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
 	}
 	tests := []struct {
