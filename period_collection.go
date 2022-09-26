@@ -28,12 +28,12 @@ import (
 // This means that insertion and deletion operations take logarithmic time while querying can never exceed linear
 // time. But on average, as long as the query period is not large relative to the total time range stored, querying
 // should perform in better than linear time.
-type PeriodCollection struct {
-	root  *node
+type PeriodCollection[K comparable, V any] struct {
+	root  *node[K, V]
 	mutex sync.RWMutex
 	// nodes is an external mapping of a node's key to a pointer of the node since the interval tree is keyed on
 	// the node's period start time
-	nodes map[interface{}]*node
+	nodes map[K]*node[K, V]
 }
 
 type rotationDirection int
@@ -56,8 +56,8 @@ const (
 )
 
 // NewPeriodCollection constructs a new PeriodCollection
-func NewPeriodCollection() *PeriodCollection {
-	return &PeriodCollection{nodes: make(map[interface{}]*node), root: &node{leaf: true}}
+func NewPeriodCollection[K comparable, V any]() *PeriodCollection[K, V] {
+	return &PeriodCollection[K, V]{nodes: make(map[K]*node[K, V]), root: &node[K, V]{leaf: true}}
 }
 
 // Command is an interface that allows multiple operations on the PeriodCollection to be
@@ -67,22 +67,23 @@ type Command interface {
 }
 
 // Update is a command that runs an update on the PeriodCollection
-type Update struct {
-	key, newContents interface{}
-	newPeriod        Period
-	pc               *PeriodCollection
+type Update[K comparable, V any] struct {
+	key         K
+	newContents V
+	newPeriod   Period
+	pc          *PeriodCollection[K, V]
 }
 
 // Delete is a command that runs a deletion on the PeriodCollection
-type Delete struct {
-	key interface{}
-	pc  *PeriodCollection
+type Delete[K comparable, V any] struct {
+	key K
+	pc  *PeriodCollection[K, V]
 }
 
 // Insert adds a new period into the collection. The key parameter is a unique identifier that must be supplied
 // when inserting a new period. contents is an arbitrary object associated with the period inserted. If a period
 // already exists with the given key, an error will be returned.
-func (pc *PeriodCollection) Insert(key interface{}, period Period, contents interface{}) error {
+func (pc *PeriodCollection[K, V]) Insert(key K, period Period, contents V) error {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	if _, ok := pc.nodes[key]; ok {
@@ -94,8 +95,8 @@ func (pc *PeriodCollection) Insert(key interface{}, period Period, contents inte
 
 // insert is the internal function that adds a new red node to the tree. Note this function does not lock the mutex,
 // that must be done by the caller.
-func (pc *PeriodCollection) insert(key interface{}, period Period, contents interface{}) {
-	inserted := newNode(period, key, contents, red)
+func (pc *PeriodCollection[K, V]) insert(key K, period Period, contents V) {
+	inserted := newNode[K, V](period, key, contents, red)
 	pc.nodes[key] = inserted
 	if pc.root == nil || pc.root.leaf {
 		inserted.color = black
@@ -108,7 +109,7 @@ func (pc *PeriodCollection) insert(key interface{}, period Period, contents inte
 
 // insertRecursive recursively adds new red node containing a period and ID into the tree. The inserted node is stored in the
 // the inserted parameter.
-func (pc *PeriodCollection) insertRecursive(root, inserted *node) {
+func (pc *PeriodCollection[K, V]) insertRecursive(root, inserted *node[K, V]) {
 	// augment the tree with the maximum end time of its subtree
 	if inserted.period.End.IsZero() {
 		root.maxEnd = inserted.period.End
@@ -135,7 +136,7 @@ func (pc *PeriodCollection) insertRecursive(root, inserted *node) {
 }
 
 // insertRepair rebalances the tree to maintain the red-black property after an insertion
-func (pc *PeriodCollection) insertRepair(n *node) {
+func (pc *PeriodCollection[K, V]) insertRepair(n *node[K, V]) {
 	if n == pc.root {
 		// n is the actual root of the tree, by definition pc is always black
 		n.color = black
@@ -188,9 +189,9 @@ func (pc *PeriodCollection) insertRepair(n *node) {
 }
 
 // rotate rotates a node in the tree about node n either left or right.
-func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
+func (pc *PeriodCollection[K, V]) rotate(n *node[K, V], direction rotationDirection) {
 	// y is the node that is going to take the place of n in the tree
-	var y *node
+	var y *node[K, V]
 	switch direction {
 	case right:
 		y = n.left
@@ -230,14 +231,14 @@ func (pc *PeriodCollection) rotate(n *node, direction rotationDirection) {
 
 // Delete removes the period and its associated contents with the provided key. If no period with the provided
 // key exists, this function is a no-op.
-func (pc *PeriodCollection) Delete(key interface{}) {
+func (pc *PeriodCollection[K, V]) Delete(key K) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	pc.delete(key)
 }
 
 // delete is the internal method that determines if a deletion is necessary, and if so, executes the deletion
-func (pc *PeriodCollection) delete(key interface{}) {
+func (pc *PeriodCollection[K, V]) delete(key K) {
 	node, ok := pc.nodes[key]
 	if !ok {
 		return
@@ -246,10 +247,10 @@ func (pc *PeriodCollection) delete(key interface{}) {
 }
 
 // deleteNode removes the specified node from the tree
-func (pc *PeriodCollection) deleteNode(n *node) {
+func (pc *PeriodCollection[K, V]) deleteNode(n *node[K, V]) {
 	// y is the node that is going to be deleted, z is the node that will be moved into y's place
-	var y *node
-	var z *node
+	var y *node[K, V]
+	var z *node[K, V]
 
 	delete(pc.nodes, n.key)
 	if n.left.leaf || n.right.leaf {
@@ -265,7 +266,7 @@ func (pc *PeriodCollection) deleteNode(n *node) {
 	} else if !y.right.leaf {
 		z = y.right
 	} else {
-		z = &node{leaf: true}
+		z = &node[K, V]{leaf: true}
 	}
 	z.parent = y.parent
 
@@ -294,7 +295,7 @@ func (pc *PeriodCollection) deleteNode(n *node) {
 }
 
 // deleteRepair rebalances the tree to maintain the red-black property after a deletion
-func (pc *PeriodCollection) deleteRepair(n *node) {
+func (pc *PeriodCollection[K, V]) deleteRepair(n *node[K, V]) {
 	if n == pc.root || n.color == red {
 		n.color = black
 		return
@@ -310,7 +311,7 @@ func (pc *PeriodCollection) deleteRepair(n *node) {
 
 // deleteRepairCase1 handles the case of the deleted node's sibling being red. changes the parent's color to red and
 // the sibling's color to black and rotates to make the sibling the parent.
-func (pc *PeriodCollection) deleteRepairCase1(n *node) {
+func (pc *PeriodCollection[K, V]) deleteRepairCase1(n *node[K, V]) {
 	sibling := n.sibling()
 	if sibling.nodeColor() == red {
 		sibling.color = black
@@ -326,7 +327,7 @@ func (pc *PeriodCollection) deleteRepairCase1(n *node) {
 // deleteRepairCase2 handles the case of the deleted node's sibling being a leaf or the sibling and its children
 // colored black. It handles this case by changing the sibling to red and returns whether the parent needs
 // to be repaired.
-func (pc *PeriodCollection) deleteRepairCase2(n *node) bool {
+func (pc *PeriodCollection[K, V]) deleteRepairCase2(n *node[K, V]) bool {
 	sibling := n.sibling()
 	if sibling.leaf {
 		return true
@@ -348,7 +349,7 @@ func (pc *PeriodCollection) deleteRepairCase2(n *node) bool {
 // deleteRepairCase3 handles the case of the node's sibling colored black with a red child on the right if the deleted
 // node is on the right, or a red child on the left if the deleted node is on the left. It handles this case by
 // recoloring the sibling red and recoloring the appropriate child to black then rotating to move the sibling up.
-func (pc *PeriodCollection) deleteRepairCase3(n *node) {
+func (pc *PeriodCollection[K, V]) deleteRepairCase3(n *node[K, V]) {
 	sibling := n.sibling()
 	if !sibling.leaf && sibling.nodeColor() == black {
 		if sibling.right.nodeColor() == red && !n.isLeftChild() {
@@ -367,7 +368,7 @@ func (pc *PeriodCollection) deleteRepairCase3(n *node) {
 // node is on the left, or the sibling having a red child on the left if the deleted node is on the right. It recolors
 // the appropriate child of the sibling, makes the sibling the same color as the parent, makes the parent black, and
 // rotates to move the sibling up.
-func (pc *PeriodCollection) deleteRepairCase4(n *node) {
+func (pc *PeriodCollection[K, V]) deleteRepairCase4(n *node[K, V]) {
 	sibling := n.sibling()
 	if !sibling.leaf && sibling.nodeColor() == black {
 		if sibling.left.nodeColor() == red && !n.isLeftChild() {
@@ -386,14 +387,14 @@ func (pc *PeriodCollection) deleteRepairCase4(n *node) {
 
 // Update the period and associated contents with the given key. If no period with the given key exists,
 // a new period is inserted.
-func (pc *PeriodCollection) Update(key interface{}, newPeriod Period, newContents interface{}) {
+func (pc *PeriodCollection[K, V]) Update(key K, newPeriod Period, newContents V) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	pc.update(key, newPeriod, newContents)
 }
 
 // update is the internal function that performs the update on the tree.
-func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContents interface{}) {
+func (pc *PeriodCollection[K, V]) update(key K, newPeriod Period, newContents V) {
 	oldNode, ok := pc.nodes[key]
 	if !ok {
 		pc.insert(key, newPeriod, newContents)
@@ -410,14 +411,14 @@ func (pc *PeriodCollection) update(key interface{}, newPeriod Period, newContent
 }
 
 // AnyContainsTime returns whether there is any stored period that contains the supplied time.
-func (pc *PeriodCollection) AnyContainsTime(time time.Time) bool {
+func (pc *PeriodCollection[K, V]) AnyContainsTime(time time.Time) bool {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	return pc.anyContainsTime(pc.root, time)
 }
 
 // anyContainsTime is the internal function that recursively searches the tree for the supplied time.
-func (pc *PeriodCollection) anyContainsTime(root *node, time time.Time) bool {
+func (pc *PeriodCollection[K, V]) anyContainsTime(root *node[K, V], time time.Time) bool {
 	if root.leaf {
 		return false
 	}
@@ -431,10 +432,10 @@ func (pc *PeriodCollection) anyContainsTime(root *node, time time.Time) bool {
 }
 
 // ContainsTime will find and return the contents of all objects in a periodic collection that contain the given time.
-func (pc *PeriodCollection) ContainsTime(time time.Time) []interface{} {
+func (pc *PeriodCollection[K, V]) ContainsTime(time time.Time) []V {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	results := make([]interface{}, 0)
+	results := make([]V, 0)
 	if pc.root.leaf {
 		return results
 	}
@@ -445,7 +446,7 @@ func (pc *PeriodCollection) ContainsTime(time time.Time) []interface{} {
 // containsTime is the recursive step of ContainsTime that will determine which branches should be traversed in the
 // periodic collection and append the contents of all nodes that contain the queried time.
 // This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
-func (pc *PeriodCollection) containsTime(time time.Time, root *node, results *[]interface{}) {
+func (pc *PeriodCollection[K, V]) containsTime(time time.Time, root *node[K, V], results *[]V) {
 	if !root.left.leaf && (root.left.maxEnd.After(time) || root.left.maxEnd.IsZero()) {
 		pc.containsTime(time, root.left, results)
 	}
@@ -463,10 +464,10 @@ func (pc *PeriodCollection) containsTime(time time.Time, root *node, results *[]
 // Intersecting returns the contents of all objects whose associated periods intersect the supplied query period.
 // Period intersection is inclusive on the start time but exclusive on the end time. The results returned by
 // Intersecting are sorted in ascending order by the associated period's start time.
-func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
+func (pc *PeriodCollection[K, V]) Intersecting(query Period) []V {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	results := make([]interface{}, 0)
+	results := make([]V, 0)
 	if pc.root.leaf {
 		return results
 	}
@@ -477,7 +478,7 @@ func (pc *PeriodCollection) Intersecting(query Period) []interface{} {
 // intersecting is the recursive step of Intersecting that will determine which branches should be traversed in the
 // periodic collection and append the contents of all nodes that intersect the queried period.
 // This method traverses the tree in-order, meaning that the results returned are sorted by start time ascending.
-func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]interface{}) {
+func (pc *PeriodCollection[K, V]) intersecting(query Period, root *node[K, V], results *[]V) {
 	if !root.left.leaf && (root.left.maxEnd.After(query.Start) || root.left.maxEnd.IsZero()) {
 		pc.intersecting(query, root.left, results)
 	}
@@ -495,7 +496,7 @@ func (pc *PeriodCollection) intersecting(query Period, root *node, results *[]in
 // AnyIntersecting returns whether or not there are any periods in the collection that intersect the query period.
 // Compared to Intersecting, this method is more efficient because it will terminate early once an intersection is
 // found.
-func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
+func (pc *PeriodCollection[K, V]) AnyIntersecting(query Period) bool {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	if pc.root.leaf {
@@ -506,7 +507,7 @@ func (pc *PeriodCollection) AnyIntersecting(query Period) bool {
 
 // anyIntersecting is the internal function that recursively searches the tree and notifies the caller on the
 // found channel whether or not it has found an intersection.
-func (pc *PeriodCollection) anyIntersecting(query Period, root *node) bool {
+func (pc *PeriodCollection[K, V]) anyIntersecting(query Period, root *node[K, V]) bool {
 	if root.period.Intersects(query) {
 		return true
 	}
@@ -520,7 +521,7 @@ func (pc *PeriodCollection) anyIntersecting(query Period, root *node) bool {
 }
 
 // ContainsKey returns whether or not a period with a corresponding key exists.
-func (pc *PeriodCollection) ContainsKey(key interface{}) bool {
+func (pc *PeriodCollection[K, V]) ContainsKey(key K) bool {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	_, ok := pc.nodes[key]
@@ -529,16 +530,16 @@ func (pc *PeriodCollection) ContainsKey(key interface{}) bool {
 
 // DepthFirstTraverse traverses the period collection's backing tree depth-first and returns the contents of every
 // node in the tree by the ordering given.
-func (pc *PeriodCollection) DepthFirstTraverse(order TraversalOrder) []interface{} {
+func (pc *PeriodCollection[K, V]) DepthFirstTraverse(order TraversalOrder) []V {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
-	nodeContents := make([]interface{}, 0, len(pc.nodes))
+	nodeContents := make([]V, 0, len(pc.nodes))
 	pc.depthFirstTraverse(pc.root, order, &nodeContents)
 	return nodeContents
 }
 
 // depthFirstTraverse is the internal recursive function for traversing the interval tree.
-func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, visitedContents *[]interface{}) {
+func (pc *PeriodCollection[K, V]) depthFirstTraverse(n *node[K, V], order TraversalOrder, visitedContents *[]V) {
 	if n.leaf {
 		return
 	}
@@ -557,12 +558,13 @@ func (pc *PeriodCollection) depthFirstTraverse(n *node, order TraversalOrder, vi
 
 // ContentsOfKey returns the contents stored at the provided key in the collection. This method
 // runs in O(1) time and can be used if the key is known but not the period.
-func (pc *PeriodCollection) ContentsOfKey(key interface{}) (interface{}, error) {
+func (pc *PeriodCollection[K, V]) ContentsOfKey(key K) (V, error) {
 	pc.mutex.RLock()
 	defer pc.mutex.RUnlock()
 	node, ok := pc.nodes[key]
 	if !ok {
-		return nil, fmt.Errorf("key %v does not exist", key)
+		var result V
+		return result, fmt.Errorf("key %v does not exist", key)
 	}
 	return node.contents, nil
 }
@@ -570,7 +572,7 @@ func (pc *PeriodCollection) ContentsOfKey(key interface{}) (interface{}, error) 
 // DeleteOnCondition will delete all nodes in the collection with contents that satisfy the given condition
 // Note that this method can be time consuming for large trees and multiple deletions as it may involve multiple
 // tree rotations.
-func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{}) bool) {
+func (pc *PeriodCollection[K, V]) DeleteOnCondition(condition func(contents V) bool) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	for _, node := range pc.nodes {
@@ -581,8 +583,8 @@ func (pc *PeriodCollection) DeleteOnCondition(condition func(contents interface{
 }
 
 // PrepareUpdate returns an Update command that can be later be used for bulk actions on the collection
-func (pc *PeriodCollection) PrepareUpdate(key interface{}, newPeriod Period, newContents interface{}) Update {
-	return Update{
+func (pc *PeriodCollection[K, V]) PrepareUpdate(key K, newPeriod Period, newContents V) Update[K, V] {
+	return Update[K, V]{
 		key:         key,
 		newContents: newContents,
 		newPeriod:   newPeriod,
@@ -591,13 +593,13 @@ func (pc *PeriodCollection) PrepareUpdate(key interface{}, newPeriod Period, new
 }
 
 // PrepareDelete returns a Delete command that can be later used for bulk actions on the collection
-func (pc *PeriodCollection) PrepareDelete(key interface{}) Delete {
-	return Delete{key: key, pc: pc}
+func (pc *PeriodCollection[K, V]) PrepareDelete(key K) Delete[K, V] {
+	return Delete[K, V]{key: key, pc: pc}
 }
 
 // Execute takes a list of commands and runs all of them on the PeriodCollection within the context
 // of one write lock.
-func (pc *PeriodCollection) Execute(commands ...Command) {
+func (pc *PeriodCollection[K, V]) Execute(commands ...Command) {
 	pc.mutex.Lock()
 	defer pc.mutex.Unlock()
 	for _, command := range commands {
@@ -606,11 +608,11 @@ func (pc *PeriodCollection) Execute(commands ...Command) {
 }
 
 // execute the update on the tree
-func (u Update) execute() {
+func (u Update[K, V]) execute() {
 	u.pc.update(u.key, u.newPeriod, u.newContents)
 }
 
 // execute the delete on the tree
-func (d Delete) execute() {
+func (d Delete[K, V]) execute() {
 	d.pc.delete(d.key)
 }

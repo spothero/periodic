@@ -28,35 +28,35 @@ const (
 // node is the private interval tree node type that contains the node's subtree, the maximum end time of the node's
 // subtree, and its color. Instead of storing leaves as nil, leaves are stored as sentinel nodes with the leaf property
 // set to make deletions easier.
-type node struct {
+type node[K comparable, V any] struct {
 	period   Period
-	key      interface{}
-	contents interface{}
+	key      K
+	contents V
 	maxEnd   time.Time
 	color    color
-	left     *node
-	right    *node
-	parent   *node
+	left     *node[K, V]
+	right    *node[K, V]
+	parent   *node[K, V]
 	leaf     bool
 }
 
 // newNode creates a new node with data and a color, making sure to construct its left and right children as
 // sentinel nil nodes.
-func newNode(period Period, key, contents interface{}, color color) *node {
-	n := &node{
+func newNode[K comparable, V any](period Period, key K, contents V, color color) *node[K, V] {
+	n := &node[K, V]{
 		period:   period,
 		key:      key,
 		contents: contents,
 		color:    color,
 		maxEnd:   period.End,
 	}
-	l, r := &node{leaf: true, parent: n}, &node{leaf: true, parent: n}
+	l, r := &node[K, V]{leaf: true, parent: n}, &node[K, V]{leaf: true, parent: n}
 	n.left, n.right = l, r
 	return n
 }
 
 // isLeftChild returns whether a node is the left child of its parent.
-func (n *node) isLeftChild() bool {
+func (n *node[K, V]) isLeftChild() bool {
 	if n.parent == nil {
 		return false
 	}
@@ -65,7 +65,7 @@ func (n *node) isLeftChild() bool {
 
 // sibling returns the node's sibling; i.e. if the node is the parent's left child, the sibling
 // is the parent's right child, and vice versa.
-func (n *node) sibling() *node {
+func (n *node[K, V]) sibling() *node[K, V] {
 	if n.parent == nil {
 		return nil
 	}
@@ -76,7 +76,7 @@ func (n *node) sibling() *node {
 }
 
 // nodeColor returns the color of the node, taking into account that nil nodes are black
-func (n *node) nodeColor() color {
+func (n *node[K, V]) nodeColor() color {
 	if n.leaf {
 		return black
 	}
@@ -85,7 +85,7 @@ func (n *node) nodeColor() color {
 
 // successor returns the next node that would be traversed in an in-order traversal.
 // This is either the the minimum value in node n's right subtree or the first ancestor that is to the left of n.
-func (n *node) successor() *node {
+func (n *node[K, V]) successor() *node[K, V] {
 	if !n.right.leaf {
 		successor := n.right
 		for !successor.left.leaf {
@@ -107,7 +107,7 @@ func (n *node) successor() *node {
 }
 
 // maxEndOfSubtree returns the latest end time of the node and its subtree.
-func (n *node) maxEndOfSubtree() time.Time {
+func (n *node[K, V]) maxEndOfSubtree() time.Time {
 	if n.period.End.IsZero() {
 		return time.Time{}
 	}
@@ -133,6 +133,6 @@ func (n *node) maxEndOfSubtree() time.Time {
 }
 
 // periodToLeft decides whether a period belongs to the left of the node.
-func (n *node) periodToLeft(p Period) bool {
+func (n *node[K, V]) periodToLeft(p Period) bool {
 	return p.Start.Before(n.period.Start)
 }
