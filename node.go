@@ -30,13 +30,13 @@ const (
 // set to make deletions easier.
 type node[K comparable, V any] struct {
 	period   Period
+	maxEnd   time.Time
 	key      K
 	contents V
-	maxEnd   time.Time
-	color    color
 	left     *node[K, V]
 	right    *node[K, V]
 	parent   *node[K, V]
+	color    color
 	leaf     bool
 }
 

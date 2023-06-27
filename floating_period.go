@@ -22,14 +22,14 @@ import (
 // FloatingPeriod defines a period which defines a bound set of time which is applicable
 // generically to any given date in a given location, but is not associated with any particular date.
 type FloatingPeriod struct {
+	// Timezone where the period is located
+	Location *time.Location
 	// Time since midnight on the that the period begins
 	Start time.Duration
 	// Time since midnight on the that the period ends
 	End time.Duration
 	// Days on which the period applies
 	Days ApplicableDays
-	// Timezone where the period is located
-	Location *time.Location
 	// Indicates whether the end time is included in the period
 	EndInclusive bool
 }
