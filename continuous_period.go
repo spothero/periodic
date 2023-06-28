@@ -21,6 +21,8 @@ import (
 // ContinuousPeriod defines a period which defines a block of time in a given location, bounded by a week, which may
 // span multiple days.
 type ContinuousPeriod struct {
+	// Timezone where the period is located
+	Location *time.Location
 	// Time since midnight on the start day of week that the period begins
 	Start time.Duration
 	// Time since midnight on the end day of week that the period ends
@@ -29,8 +31,6 @@ type ContinuousPeriod struct {
 	StartDOW time.Weekday
 	// Day of the week when the period ends
 	EndDOW time.Weekday
-	// Timezone where the period is located
-	Location *time.Location
 }
 
 // NewContinuousPeriod constructs a new continuous period

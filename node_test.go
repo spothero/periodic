@@ -28,22 +28,20 @@ func TestNode_isLeftChild(t *testing.T) {
 	root.left = left
 	root.right = right
 	tests := []struct {
-		name     string
 		testNode *node[int, any]
+		name     string
 		outcome  bool
 	}{
 		{
-			"root is not the left child",
-			root,
-			false,
+			name:     "root is not the left child",
+			testNode: root,
 		}, {
-			"left is the left child",
-			left,
-			true,
+			name:     "left is the left child",
+			testNode: left,
+			outcome:  true,
 		}, {
-			"right is not the left child",
-			right,
-			false,
+			name:     "right is not the left child",
+			testNode: right,
 		},
 	}
 	for _, test := range tests {
@@ -60,22 +58,21 @@ func TestNode_sibling(t *testing.T) {
 	root.left = left
 	root.right = right
 	tests := []struct {
-		name     string
 		testNode *node[int, any]
 		outcome  *node[int, any]
+		name     string
 	}{
 		{
-			"root has no siblings",
-			root,
-			nil,
+			name:     "root has no siblings",
+			testNode: root,
 		}, {
-			"sibling of left is right",
-			left,
-			right,
+			name:     "sibling of left is right",
+			testNode: left,
+			outcome:  right,
 		}, {
-			"sibling of right is left",
-			right,
-			left,
+			name:     "sibling of right is left",
+			testNode: right,
+			outcome:  left,
 		},
 	}
 	for _, test := range tests {
@@ -87,28 +84,28 @@ func TestNode_sibling(t *testing.T) {
 
 func TestNode_nodeColor(t *testing.T) {
 	tests := []struct {
-		name  string
 		setup func() *node[int, any]
+		name  string
 		color color
 	}{
 		{
-			"black node is black",
-			func() *node[int, any] {
+			name: "black node is black",
+			setup: func() *node[int, any] {
 				return &node[int, any]{color: black}
 			},
-			black,
+			color: black,
 		}, {
-			"red node is red",
-			func() *node[int, any] {
+			name: "red node is red",
+			setup: func() *node[int, any] {
 				return &node[int, any]{color: red}
 			},
-			red,
+			color: red,
 		}, {
-			"leaf node is black",
-			func() *node[int, any] {
+			name: "leaf node is black",
+			setup: func() *node[int, any] {
 				return &node[int, any]{leaf: true}
 			},
-			black,
+			color: black,
 		},
 	}
 	for _, test := range tests {
@@ -158,42 +155,38 @@ func TestNode_maxEndOfSubtree(t *testing.T) {
 	j.maxEnd = j.period.End
 
 	tests := []struct {
-		name     string
-		node     *node[int, any]
 		expected time.Time
+		node     *node[int, any]
+		name     string
 	}{
 		{
-			"node with only child leafs returns its own max end time",
-			c,
-			c.period.End,
+			name:     "node with only child leafs returns its own max end time",
+			node:     c,
+			expected: c.period.End,
 		}, {
-			"node with only left child returns max of its period end and its left child's max end",
-			b,
-			c.maxEnd,
+			name:     "node with only left child returns max of its period end and its left child's max end",
+			node:     b,
+			expected: c.maxEnd,
 		}, {
-			"node with only right child returns max of its period end and its right child's max end",
-			d,
-			d.maxEnd,
+			name:     "node with only right child returns max of its period end and its right child's max end",
+			node:     d,
+			expected: d.maxEnd,
 		}, {
-			"node with left and right children returns the max of its period end and its children's max ends",
-			a,
-			d.maxEnd,
+			name:     "node with left and right children returns the max of its period end and its children's max ends",
+			node:     a,
+			expected: d.maxEnd,
 		}, {
-			"node with only left child with period unbounded on the right returns the zero time",
-			f,
-			time.Time{},
+			name: "node with only left child with period unbounded on the right returns the zero time",
+			node: f,
 		}, {
-			"node with only right child with period unbounded on the right returns the zero time",
-			h,
-			time.Time{},
+			name: "node with only right child with period unbounded on the right returns the zero time",
+			node: h,
 		}, {
-			"node with left and right children where one node's max end is unbounded on the right returns the zero time",
-			j,
-			time.Time{},
+			name: "node with left and right children where one node's max end is unbounded on the right returns the zero time",
+			node: j,
 		}, {
-			"node with zero end time returns zero",
-			newNode[int, any](Period{time.Unix(20, 0), time.Time{}}, 0, nil, black),
-			time.Time{},
+			name: "node with zero end time returns zero",
+			node: newNode[int, any](Period{time.Unix(20, 0), time.Time{}}, 0, nil, black),
 		},
 	}
 	for _, test := range tests {
@@ -208,22 +201,20 @@ func TestNode_periodToLeft(t *testing.T) {
 		period: NewPeriod(time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 8, 0, 0, 0, 0, time.UTC)),
 	}
 	tests := []struct {
-		name    string
 		p       Period
+		name    string
 		outcome bool
 	}{
 		{
-			"start before node start is to the left",
-			Period{Start: time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)},
-			true,
+			name:    "start before node start is to the left",
+			p:       Period{Start: time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)},
+			outcome: true,
 		}, {
-			"start after node start is not to the left",
-			Period{Start: time.Date(2019, 1, 1, 1, 1, 1, 1, time.UTC)},
-			false,
+			name: "start after node start is not to the left",
+			p:    Period{Start: time.Date(2019, 1, 1, 1, 1, 1, 1, time.UTC)},
 		}, {
-			"start equal to node start is not to the left",
-			Period{Start: time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)},
-			false,
+			name: "start equal to node start is not to the left",
+			p:    Period{Start: time.Date(2018, 12, 7, 0, 0, 0, 0, time.UTC)},
 		},
 	}
 	for _, test := range tests {

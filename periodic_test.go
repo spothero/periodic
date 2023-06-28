@@ -29,61 +29,57 @@ func TestPeriod_Intersects(t *testing.T) {
 		End:   time.Date(2018, 5, 26, 13, 14, 15, 0, time.UTC),
 	}
 	tests := []struct {
-		name           string
-		expectedResult bool
 		p              Period
 		o              Period
+		name           string
+		expectedResult bool
 	}{
 		{
-			"True when start intersects",
-			true,
-			p,
-			NewPeriod(p.Start, p.End.Add(time.Duration(1)*time.Minute)),
+			name:           "True when start intersects",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start, p.End.Add(time.Duration(1)*time.Minute)),
 		}, {
-			"True when end intersects",
-			true,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
+			name:           "True when end intersects",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"True when start and end intersects through containment",
-			true,
-			p,
-			NewPeriod(p.Start, p.End.Add(-time.Duration(1)*time.Minute)),
+			name:           "True when start and end intersects through containment",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start, p.End.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"true when start and end contain the period",
-			true,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(time.Duration(1)*time.Minute)),
+			name:           "true when start and end contain the period",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(time.Duration(1)*time.Minute)),
 		}, {
-			"False when start and end are before",
-			false,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(2)*time.Minute), p.Start.Add(-time.Duration(1)*time.Minute)),
+			name: "False when start and end are before",
+			p:    p,
+			o:    NewPeriod(p.Start.Add(-time.Duration(2)*time.Minute), p.Start.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"False when start and end are after",
-			false,
-			p,
-			NewPeriod(p.End.Add(time.Duration(1)*time.Minute), p.End.Add(time.Duration(2)*time.Minute)),
+			name: "False when start and end are after",
+			p:    p,
+			o:    NewPeriod(p.End.Add(time.Duration(1)*time.Minute), p.End.Add(time.Duration(2)*time.Minute)),
 		}, {
-			"True when start intersects and other end is unbounded",
-			true,
-			p,
-			NewPeriod(p.Start, time.Time{}),
+			name:           "True when start intersects and other end is unbounded",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start, time.Time{}),
 		}, {
-			"True when start intersects and end is unbounded",
-			true,
-			NewPeriod(p.Start, time.Time{}),
-			p,
+			name:           "True when start intersects and end is unbounded",
+			expectedResult: true,
+			p:              NewPeriod(p.Start, time.Time{}),
+			o:              p,
 		}, {
-			"False when end is unbounded and start comes after other end",
-			false,
-			NewPeriod(p.Start, time.Time{}),
-			NewPeriod(time.Unix(0, 0), p.Start.Add(-time.Hour)),
+			name: "False when end is unbounded and start comes after other end",
+			p:    NewPeriod(p.Start, time.Time{}),
+			o:    NewPeriod(time.Unix(0, 0), p.Start.Add(-time.Hour)),
 		}, {
-			"False when other end is unbounded and other start comes after end",
-			false,
-			p,
-			NewPeriod(p.End.Add(time.Second), time.Time{}),
+			name: "False when other end is unbounded and other start comes after end",
+			p:    p,
+			o:    NewPeriod(p.End.Add(time.Second), time.Time{}),
 		},
 	}
 	for _, test := range tests {
@@ -100,66 +96,59 @@ func TestPeriod_Contains(t *testing.T) {
 	require.NoError(t, err)
 	p := Period{Start: testTime1, End: testTime2}
 	tests := []struct {
-		name           string
-		expectedResult bool
 		p              Period
 		o              Period
+		name           string
+		expectedResult bool
 	}{
 		{
-			"False when only start intersects",
-			false,
-			p,
-			NewPeriod(p.Start, p.End.Add(time.Duration(1)*time.Minute)),
+			name: "False when only start intersects",
+			p:    p,
+			o:    NewPeriod(p.Start, p.End.Add(time.Duration(1)*time.Minute)),
 		}, {
-			"False when only end intersects",
-			false,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
+			name: "False when only end intersects",
+			p:    p,
+			o:    NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"True when start and end intersects through containment",
-			true,
-			p,
-			NewPeriod(p.Start, p.End.Add(-time.Duration(1)*time.Minute)),
+			name:           "True when start and end intersects through containment",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start, p.End.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"False when start and end contain the period",
-			false,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(time.Duration(1)*time.Minute)),
+			name: "False when start and end contain the period",
+			p:    p,
+			o:    NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(time.Duration(1)*time.Minute)),
 		}, {
-			"False when start and end are before",
-			false,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(2)*time.Minute), p.Start.Add(-time.Duration(1)*time.Minute)),
+			name: "False when start and end are before",
+			p:    p,
+			o:    NewPeriod(p.Start.Add(-time.Duration(2)*time.Minute), p.Start.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"False when start and end are after",
-			false,
-			p,
-			NewPeriod(p.End.Add(time.Duration(1)*time.Minute), p.End.Add(time.Duration(2)*time.Minute)),
+			name: "False when start and end are after",
+			p:    p,
+			o:    NewPeriod(p.End.Add(time.Duration(1)*time.Minute), p.End.Add(time.Duration(2)*time.Minute)),
 		}, {
-			"False when start is before and no end",
-			false,
-			NewPeriod(testTime1, time.Time{}),
-			NewPeriod(testTime1.Add(-time.Minute), testTime2),
+			name: "False when start is before and no end",
+			p:    NewPeriod(testTime1, time.Time{}),
+			o:    NewPeriod(testTime1.Add(-time.Minute), testTime2),
 		}, {
-			"True when start is after and no end",
-			true,
-			NewPeriod(testTime1, time.Time{}),
-			NewPeriod(testTime1.Add(time.Minute), testTime2),
+			name:           "True when start is after and no end",
+			expectedResult: true,
+			p:              NewPeriod(testTime1, time.Time{}),
+			o:              NewPeriod(testTime1.Add(time.Minute), testTime2),
 		}, {
-			"False when end is after and no start",
-			false,
-			NewPeriod(time.Time{}, testTime2),
-			NewPeriod(testTime1, testTime2.Add(time.Minute)),
+			name: "False when end is after and no start",
+			p:    NewPeriod(time.Time{}, testTime2),
+			o:    NewPeriod(testTime1, testTime2.Add(time.Minute)),
 		}, {
-			"True when end is before and no start",
-			true,
-			NewPeriod(time.Time{}, testTime2),
-			NewPeriod(testTime1, testTime2.Add(-time.Minute)),
+			name:           "True when end is before and no start",
+			expectedResult: true,
+			p:              NewPeriod(time.Time{}, testTime2),
+			o:              NewPeriod(testTime1, testTime2.Add(-time.Minute)),
 		}, {
-			"True when period has no start and no end",
-			true,
-			NewPeriod(time.Time{}, time.Time{}),
-			NewPeriod(testTime1, testTime2),
+			name:           "True when period has no start and no end",
+			expectedResult: true,
+			p:              NewPeriod(time.Time{}, time.Time{}),
+			o:              NewPeriod(testTime1, testTime2),
 		},
 	}
 	for _, test := range tests {
@@ -187,61 +176,57 @@ func TestPeriod_ContainsAny(t *testing.T) {
 		End:   time.Time{},
 	}
 	tests := []struct {
-		name           string
-		expectedResult bool
 		p              Period
 		o              Period
+		name           string
+		expectedResult bool
 	}{
 		{
-			"Identical time periods are contained (start)",
-			true,
-			p,
-			p,
+			name:           "Identical time periods are contained (start)",
+			expectedResult: true,
+			p:              p,
+			o:              p,
 		}, {
-			"True when start is contained",
-			true,
-			p,
-			NewPeriod(p.Start, p.End.Add(time.Duration(1)*time.Minute)),
+			name:           "True when start is contained",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start, p.End.Add(time.Duration(1)*time.Minute)),
 		}, {
-			"True when end is contained",
-			true,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
+			name:           "True when end is contained",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start.Add(-time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"True when period is fully contained",
-			true,
-			p,
-			NewPeriod(p.Start.Add(time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
+			name:           "True when period is fully contained",
+			expectedResult: true,
+			p:              p,
+			o:              NewPeriod(p.Start.Add(time.Duration(1)*time.Minute), p.End.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"False when period is fully before",
-			false,
-			p,
-			NewPeriod(p.Start.Add(-time.Duration(2)*time.Minute), p.Start.Add(-time.Duration(1)*time.Minute)),
+			name: "False when period is fully before",
+			p:    p,
+			o:    NewPeriod(p.Start.Add(-time.Duration(2)*time.Minute), p.Start.Add(-time.Duration(1)*time.Minute)),
 		}, {
-			"False when period is fully after",
-			false,
-			p,
-			NewPeriod(p.End.Add(time.Duration(1)*time.Minute), p.End.Add(time.Duration(2)*time.Minute)),
+			name: "False when period is fully after",
+			p:    p,
+			o:    NewPeriod(p.End.Add(time.Duration(1)*time.Minute), p.End.Add(time.Duration(2)*time.Minute)),
 		}, {
-			"True when open starts period start time is before requested time",
-			true,
-			pos,
-			NewPeriod(pos.Start.Add(-time.Duration(1)*time.Minute), pos.Start.AddDate(1, 0, 0)),
+			name:           "True when open starts period start time is before requested time",
+			expectedResult: true,
+			p:              pos,
+			o:              NewPeriod(pos.Start.Add(-time.Duration(1)*time.Minute), pos.Start.AddDate(1, 0, 0)),
 		}, {
-			"False when open starts period start time is after requested time",
-			false,
-			pos,
-			NewPeriod(pos.End, pos.End.Add(time.Duration(1)*time.Minute)),
+			name: "False when open starts period start time is after requested time",
+			p:    pos,
+			o:    NewPeriod(pos.End, pos.End.Add(time.Duration(1)*time.Minute)),
 		}, {
-			"True when open ends period end time is after requested time",
-			true,
-			poe,
-			NewPeriod(poe.Start.Add(time.Duration(1)*time.Minute), poe.Start.AddDate(2, 0, 0)),
+			name:           "True when open ends period end time is after requested time",
+			expectedResult: true,
+			p:              poe,
+			o:              NewPeriod(poe.Start.Add(time.Duration(1)*time.Minute), poe.Start.AddDate(2, 0, 0)),
 		}, {
-			"False when open ends period end time is before requested time",
-			false,
-			poe,
-			NewPeriod(poe.Start.AddDate(-1, 0, 0), poe.Start.Add(-time.Duration(1)*time.Minute)),
+			name: "False when open ends period end time is before requested time",
+			p:    poe,
+			o:    NewPeriod(poe.Start.AddDate(-1, 0, 0), poe.Start.Add(-time.Duration(1)*time.Minute)),
 		},
 	}
 	for _, test := range tests {
@@ -253,26 +238,24 @@ func TestPeriod_ContainsAny(t *testing.T) {
 
 func TestPeriod_Less(t *testing.T) {
 	tests := []struct {
-		name           string
-		expectedResult bool
 		p              Period
+		name           string
 		d              time.Duration
+		expectedResult bool
 	}{
 		{
-			"01/01/2018 05:00 - 01/01/2018 21:00 is less than 24 hours",
-			true,
-			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
-			time.Duration(24) * time.Hour,
+			name:           "01/01/2018 05:00 - 01/01/2018 21:00 is less than 24 hours",
+			expectedResult: true,
+			p:              NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			d:              time.Duration(24) * time.Hour,
 		}, {
-			"01/01/2018 05:00 - 01/01/2018 21:00 is not less than 16 hours",
-			false,
-			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
-			time.Duration(16) * time.Hour,
+			name: "01/01/2018 05:00 - 01/01/2018 21:00 is not less than 16 hours",
+			p:    NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			d:    time.Duration(16) * time.Hour,
 		}, {
-			"01/01/2018 05:00 - 01/01/2018 21:00 is not less than 1 hour",
-			false,
-			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
-			time.Duration(1) * time.Hour,
+			name: "01/01/2018 05:00 - 01/01/2018 21:00 is not less than 1 hour",
+			p:    NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			d:    time.Duration(1) * time.Hour,
 		},
 	}
 	for _, test := range tests {
@@ -284,91 +267,73 @@ func TestPeriod_Less(t *testing.T) {
 
 func TestPeriod_ContainsTime(t *testing.T) {
 	tests := []struct {
-		name           string
-		expectedResult bool
 		p              Period
 		t              time.Time
+		name           string
+		expectedResult bool
 		endInclusive   bool
 	}{
 		{
-			"Period 01/01/2018 05:00-21:00, request for 05:00 is contained",
-			true,
-			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
-			false,
+			name:           "Period 01/01/2018 05:00-21:00, request for 05:00 is contained",
+			expectedResult: true,
+			p:              NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			t:              time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
 		}, {
-			"Period 01/01/2018 05:00-21:00, request for 04:59 is not contained",
-			false,
-			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 4, 59, 0, 0, time.UTC),
-			false,
+			name: "Period 01/01/2018 05:00-21:00, request for 04:59 is not contained",
+			p:    NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			t:    time.Date(2018, 1, 1, 4, 59, 0, 0, time.UTC),
 		}, {
-			"01/01/2018 Period 21:00 - 01/02/2018 05:00, request for 21:00 is contained",
-			true,
-			NewPeriod(time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 5, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
-			false,
+			name:           "01/01/2018 Period 21:00 - 01/02/2018 05:00, request for 21:00 is contained",
+			expectedResult: true,
+			p:              NewPeriod(time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 5, 0, 0, 0, time.UTC)),
+			t:              time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
 		}, {
-			"01/01/2018 Period 21:00 - 01/02/2018 05:00, request for 20:59 is not contained",
-			false,
-			NewPeriod(time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 5, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 20, 59, 0, 0, time.UTC),
-			false,
+			name: "01/01/2018 Period 21:00 - 01/02/2018 05:00, request for 20:59 is not contained",
+			p:    NewPeriod(time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC), time.Date(2018, 1, 2, 5, 0, 0, 0, time.UTC)),
+			t:    time.Date(2018, 1, 1, 20, 59, 0, 0, time.UTC),
 		}, {
-			"Period 0 - 0 contains any time",
-			true,
-			Period{},
-			time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC),
-			false,
+			name:           "Period 0 - 0 contains any time",
+			expectedResult: true,
+			t:              time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC),
 		}, {
-			"Period with only start time contains anything after start",
-			true,
-			NewPeriod(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
-			time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC),
-			false,
+			name:           "Period with only start time contains anything after start",
+			expectedResult: true,
+			p:              NewPeriod(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
+			t:              time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC),
 		}, {
-			"Period with only start time does not contain anything before start",
-			false,
-			NewPeriod(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
-			time.Date(2017, 12, 31, 23, 59, 0, 0, time.UTC),
-			false,
+			name: "Period with only start time does not contain anything before start",
+			p:    NewPeriod(time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}),
+			t:    time.Date(2017, 12, 31, 23, 59, 0, 0, time.UTC),
 		}, {
-			"Period with only end time contains anything before the end",
-			true,
-			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
-			time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC),
-			false,
+			name:           "Period with only end time contains anything before the end",
+			expectedResult: true,
+			p:              NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
+			t:              time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC),
 		}, {
-			"Period with only end time does not contain anything after the end",
-			false,
-			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
-			time.Date(2018, 1, 2, 0, 0, 0, 0, time.UTC),
-			false,
+			name: "Period with only end time does not contain anything after the end",
+			p:    NewPeriod(time.Time{}, time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)),
+			t:    time.Date(2018, 1, 2, 0, 0, 0, 0, time.UTC),
 		}, {
-			"Period 0 - 01/01/2018 05:00, request for 05:00 is not contained",
-			false,
-			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
-			false,
+			name: "Period 0 - 01/01/2018 05:00, request for 05:00 is not contained",
+			p:    NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
+			t:    time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
 		}, {
-			"Period 01/01/2018 05:00-21:00, request for 21:00 is not contained",
-			false,
-			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
-			false,
+			name: "Period 01/01/2018 05:00-21:00, request for 21:00 is not contained",
+			p:    NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			t:    time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
 		},
 		{
-			"End inclusive period 0 - 01/01/2018 05:00, request for 05:00 is contained",
-			true,
-			NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
-			true,
+			name:           "End inclusive period 0 - 01/01/2018 05:00, request for 05:00 is contained",
+			expectedResult: true,
+			p:              NewPeriod(time.Time{}, time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC)),
+			t:              time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC),
+			endInclusive:   true,
 		}, {
-			"End inclusive period 01/01/2018 05:00-21:00, request for 21:00 is contained",
-			true,
-			NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
-			time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
-			true,
+			name:           "End inclusive period 01/01/2018 05:00-21:00, request for 21:00 is contained",
+			expectedResult: true,
+			p:              NewPeriod(time.Date(2018, 1, 1, 5, 0, 0, 0, time.UTC), time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC)),
+			t:              time.Date(2018, 1, 1, 21, 0, 0, 0, time.UTC),
+			endInclusive:   true,
 		},
 	}
 	for _, test := range tests {
@@ -450,13 +415,13 @@ func TestMinTime(t *testing.T) {
 
 func TestNewApplicableDaysMonStart(t *testing.T) {
 	continuousDayTests := []struct {
+		expectedResult *ApplicableDays
 		startDay       int
 		endDay         int
-		expectedResult *ApplicableDays
 	}{
-		{0, 0, &ApplicableDays{true, false, false, false, false, false, false}},
-		{0, 4, &ApplicableDays{true, true, true, true, true, false, false}},
-		{5, 1, &ApplicableDays{true, true, false, false, false, true, true}},
+		{expectedResult: &ApplicableDays{true, false, false, false, false, false, false}},
+		{endDay: 4, expectedResult: &ApplicableDays{true, true, true, true, true, false, false}},
+		{startDay: 5, endDay: 1, expectedResult: &ApplicableDays{true, true, false, false, false, true, true}},
 	}
 	for _, test := range continuousDayTests {
 		t.Run(fmt.Sprintf("start: %d, end: %d", test.startDay, test.endDay), func(t *testing.T) {
@@ -500,24 +465,23 @@ func TestApplicableDays_TimeApplicable(t *testing.T) {
 	chiTZ, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
 	tests := []struct {
-		name    string
 		t       time.Time
 		l       *time.Location
+		name    string
 		ad      ApplicableDays
 		outcome bool
 	}{
 		{
-			"2018-10-30T22:00 CDT is applicable on Tuesday CDT",
-			time.Date(2018, 10, 30, 22, 0, 0, 0, chiTZ),
-			chiTZ,
-			ApplicableDays{Tuesday: true},
-			true,
+			name:    "2018-10-30T22:00 CDT is applicable on Tuesday CDT",
+			t:       time.Date(2018, 10, 30, 22, 0, 0, 0, chiTZ),
+			l:       chiTZ,
+			ad:      ApplicableDays{Tuesday: true},
+			outcome: true,
 		}, {
-			"2018-10-30T22:00 CDT is not applicable on Tuesday UTC",
-			time.Date(2018, 10, 30, 22, 0, 0, 0, chiTZ),
-			time.UTC,
-			ApplicableDays{Tuesday: true},
-			false,
+			name: "2018-10-30T22:00 CDT is not applicable on Tuesday UTC",
+			t:    time.Date(2018, 10, 30, 22, 0, 0, 0, chiTZ),
+			l:    time.UTC,
+			ad:   ApplicableDays{Tuesday: true},
 		},
 	}
 	for _, test := range tests {
@@ -579,26 +543,24 @@ func TestPeriod_Equals(t *testing.T) {
 	require.NoError(t, err)
 	p := NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC))
 	tests := []struct {
-		name    string
 		other   Period
+		name    string
 		outcome bool
 	}{
 		{
-			"periods with same starts and ends are equal",
-			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC)),
-			true,
+			name:    "periods with same starts and ends are equal",
+			other:   NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC)),
+			outcome: true,
 		}, {
-			"periods with the same start and different ends are not equal",
-			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 1, time.UTC)),
-			false,
+			name:  "periods with the same start and different ends are not equal",
+			other: NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 0, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 1, time.UTC)),
 		}, {
-			"periods with the different start and same ends are not equal",
-			NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 1, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC)),
-			false,
+			name:  "periods with the different start and same ends are not equal",
+			other: NewPeriod(time.Date(2018, 12, 7, 12, 0, 0, 1, time.UTC), time.Date(2018, 12, 7, 17, 0, 0, 0, time.UTC)),
 		}, {
-			"periods with the starts and ends in different times are the same when adjusted",
-			NewPeriod(time.Date(2018, 12, 7, 6, 0, 0, 0, chiTz), time.Date(2018, 12, 7, 11, 0, 0, 0, chiTz)),
-			true,
+			name:    "periods with the starts and ends in different times are the same when adjusted",
+			other:   NewPeriod(time.Date(2018, 12, 7, 6, 0, 0, 0, chiTz), time.Date(2018, 12, 7, 11, 0, 0, 0, chiTz)),
+			outcome: true,
 		},
 	}
 	for _, test := range tests {
@@ -646,18 +608,17 @@ func TestMonStartToSunStart(t *testing.T) {
 
 func TestPeriod_IsZero(t *testing.T) {
 	tests := []struct {
-		name    string
 		p       Period
+		name    string
 		outcome bool
 	}{
 		{
-			"period where start and end are not equal is not zero",
-			Period{Start: time.Unix(1, 0), End: time.Unix(5, 0)},
-			false,
+			name: "period where start and end are not equal is not zero",
+			p:    Period{Start: time.Unix(1, 0), End: time.Unix(5, 0)},
 		}, {
-			"period where start and end are equal is zero",
-			Period{Start: time.Unix(1, 0), End: time.Unix(1, 0)},
-			true,
+			name:    "period where start and end are equal is zero",
+			p:       Period{Start: time.Unix(1, 0), End: time.Unix(1, 0)},
+			outcome: true,
 		},
 	}
 	for _, test := range tests {
@@ -760,26 +721,26 @@ func TestAddDSTAwareDuration(t *testing.T) {
 	chiTz, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
 	tests := []struct {
-		name     string
 		t        time.Time
-		d        time.Duration
 		expected time.Time
+		name     string
+		d        time.Duration
 	}{
 		{
-			"result time with same timezone offset returns correct time",
-			time.Date(2019, 11, 1, 15, 0, 0, 0, chiTz),
-			24 * time.Hour,
-			time.Date(2019, 11, 2, 15, 0, 0, 0, chiTz),
+			name:     "result time with same timezone offset returns correct time",
+			t:        time.Date(2019, 11, 1, 15, 0, 0, 0, chiTz),
+			d:        24 * time.Hour,
+			expected: time.Date(2019, 11, 2, 15, 0, 0, 0, chiTz),
 		}, {
-			"time in DST, result in non-DST returns correct time",
-			time.Date(2019, 11, 2, 15, 0, 0, 0, chiTz),
-			24 * time.Hour,
-			time.Date(2019, 11, 3, 15, 0, 0, 0, chiTz),
+			name:     "time in DST, result in non-DST returns correct time",
+			t:        time.Date(2019, 11, 2, 15, 0, 0, 0, chiTz),
+			d:        24 * time.Hour,
+			expected: time.Date(2019, 11, 3, 15, 0, 0, 0, chiTz),
 		}, {
-			"time in non-DST, result in DST returns correct time",
-			time.Date(2019, 3, 9, 15, 0, 0, 0, chiTz),
-			24 * time.Hour,
-			time.Date(2019, 3, 10, 15, 0, 0, 0, chiTz),
+			name:     "time in non-DST, result in DST returns correct time",
+			t:        time.Date(2019, 3, 9, 15, 0, 0, 0, chiTz),
+			d:        24 * time.Hour,
+			expected: time.Date(2019, 3, 10, 15, 0, 0, 0, chiTz),
 		},
 	}
 	for _, test := range tests {

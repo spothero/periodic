@@ -29,11 +29,11 @@ import (
 // time. But on average, as long as the query period is not large relative to the total time range stored, querying
 // should perform in better than linear time.
 type PeriodCollection[K comparable, V any] struct {
-	root  *node[K, V]
-	mutex sync.RWMutex
+	root *node[K, V]
 	// nodes is an external mapping of a node's key to a pointer of the node since the interval tree is keyed on
 	// the node's period start time
 	nodes map[K]*node[K, V]
+	mutex sync.RWMutex
 }
 
 type rotationDirection int
