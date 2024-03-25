@@ -512,7 +512,7 @@ func TestPeriodCollection_Delete(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(_ *testing.T) {
 			n := newNode[int, any](Period{}, 1, nil, black)
 			pc := PeriodCollection[int, any]{
 				root:  n,
@@ -1950,7 +1950,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 			query: NewPeriod(time.Date(2018, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 12, 2, 0, 0, 0, 0, time.UTC)),
 		}, {
 			name:             "tree with leaf root does not intersect",
-			createCollection: func(t *testing.T) *PeriodCollection[int, any] { return NewPeriodCollection[int, any]() },
+			createCollection: func(_ *testing.T) *PeriodCollection[int, any] { return NewPeriodCollection[int, any]() },
 		}, {
 			name: "searching with unbound intersection in right subtree works",
 			createCollection: func(t *testing.T) *PeriodCollection[int, any] {
@@ -2024,7 +2024,7 @@ func TestPeriodCollection_AnyIntersecting(t *testing.T) {
 			  RL
 			*/
 			name: "searching with in order successor of root as only intersection",
-			createCollection: func(t *testing.T) *PeriodCollection[int, any] {
+			createCollection: func(_ *testing.T) *PeriodCollection[int, any] {
 				n := newNode[int, any](Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 2, 0, 0, 0, 0, time.UTC)}, 1, "n", black)
 				l := newNode[int, any](Period{time.Date(2019, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 2, 0, 0, 0, 0, time.UTC)}, 2, "l", black)
 				r := newNode[int, any](Period{time.Date(2019, 12, 5, 0, 0, 0, 0, time.UTC), time.Date(2019, 12, 6, 0, 0, 0, 0, time.UTC)}, 3, "r", black)
@@ -2133,7 +2133,7 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 	}{
 		{
 			name: "delete all nodes",
-			condition: func(i any) bool {
+			condition: func(_ any) bool {
 				return true
 			},
 			validate: func(t *testing.T, pc *PeriodCollection[int, any]) {
@@ -2141,7 +2141,7 @@ func TestPeriodCollection_DeleteOnCondition(t *testing.T) {
 			},
 		}, {
 			name: "delete 0 nodes",
-			condition: func(i any) bool {
+			condition: func(_ any) bool {
 				return false
 			},
 			validate: func(t *testing.T, pc *PeriodCollection[int, any]) {
