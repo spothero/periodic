@@ -560,12 +560,12 @@ func TestNewFloatingPeriod(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fp, err := NewFloatingPeriod(test.s, test.e, test.d, test.loc, false)
+			fp, fpErr := NewFloatingPeriod(test.s, test.e, test.d, test.loc, false)
 			if test.expectError {
-				require.Error(t, err)
+				require.Error(t, fpErr)
 				return
 			}
-			require.NoError(t, err)
+			require.NoError(t, fpErr)
 			assert.Equal(t, test.s, fp.Start)
 			assert.Equal(t, test.e, fp.End)
 			assert.Equal(t, test.d, fp.Days)
